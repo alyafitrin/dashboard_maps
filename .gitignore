@@ -1,0 +1,27 @@
+# === Node.js & Environment ===
+node_modules/
+.env
+
+# === Logs & Temp ===
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# === Uploads (foto visit, dll) ===
+uploads/
+
+# === Data sumber (Excel, CSV, dll) ===
+data/*.xlsx
+
+# === Sistem / Editor Files ===
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# === Build / Cache ===
+dist/
+build/
+.cache/
