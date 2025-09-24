@@ -406,6 +406,9 @@ function plotBranchDataOnMap(data) {
 // ===========================
 // Fungsi tampilkan modal developer
 // ===========================
+// ===========================
+// Fungsi tampilkan modal developer
+// ===========================
 function showDeveloperModal(devData, visitData, kodeCabang) {
   // Simpan kode cabang & nama developer ke hidden input form
   document.getElementById("visit-kode-cabang").value = kodeCabang;
@@ -466,10 +469,37 @@ function showDeveloperModal(devData, visitData, kodeCabang) {
   document.getElementById("visitForm").style.display = "none";
   document.getElementById("btn-save-visit").style.display = "none";
 
-  // Tampilkan modal
-  const modal = new bootstrap.Modal(document.getElementById("developerModal"));
+  // Tampilkan modal pakai API Bootstrap
+  const modalEl = document.getElementById("developerModal");
+  const modal = new bootstrap.Modal(modalEl);
   modal.show();
+
+  // Tambahkan listener hanya sekali (biar tidak dobel)
+  modalEl.addEventListener("hidden.bs.modal", async () => {
+    console.log("🔄 Modal ditutup, refresh dashboard...");
+
+    // Hapus backdrop kalau masih nyangkut
+    const backdrop = document.querySelector(".modal-backdrop");
+    if (backdrop) backdrop.remove();
+    document.body.classList.remove("modal-open");
+    document.body.style.overflow = "auto";
+
+    // Refresh sesuai filter terakhir
+    if (currentState.selectedUnit === "region") {
+      await showAllData();
+    } else if (currentState.selectedUnit === "area" && currentState.selectedArea) {
+      const areaData = await fetchAreaData(currentState.selectedArea.kode_area);
+      if (areaData) {
+        plotAreaMarkers([currentState.selectedArea]);
+        plotBranchDataOnMap(areaData);
+        updateStatistics(areaData);
+      }
+    }
+
+    updateLayerVisibility();
+  }, { once: true }); // ✅ hanya sekali per modal open
 }
+
 
 // ===========================
 // Open Developer Detail
@@ -553,7 +583,6 @@ document.getElementById("visitForm").addEventListener("submit", async function(e
     alert("❌ Terjadi kesalahan saat menyimpan data");
   }
 });
-
 
 
 function toggleAreaFilterAccess() {
