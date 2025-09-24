@@ -63,25 +63,26 @@ const Developer = {
 
     // Update visit
     updateVisit: async (id_visit, visitData) => {
-    const {
-      visit_date,
-      jumlah_kavling,
-      ready_stock,
-      sisa_potensi,
-      terjual,
-      foto_visit
-    } = visitData;
+      const {
+        visit_date,
+        jumlah_kavling,
+        ready_stock,
+        sisa_potensi,
+        terjual,
+        foto_visit
+      } = visitData;
 
-    const [result] = await pool.query(
-      `UPDATE developer_visit
-       SET visit_date = ?, jumlah_kavling = ?, ready_stock = ?, 
-           sisa_potensi = ?, terjual = ?, foto_visit = ?
-       WHERE id_visit = ?`,
-      [visit_date, jumlah_kavling, ready_stock, sisa_potensi, terjual, foto_visit, id_visit]
-    );
+      const [result] = await pool.query(
+        `UPDATE developer_visit
+        SET visit_date = ?, jumlah_kavling = ?, ready_stock = ?, 
+            sisa_potensi = ?, terjual = ?, foto_visit = ?
+        WHERE id_visit = ?`,
+        [visit_date, jumlah_kavling, ready_stock, sisa_potensi, terjual, foto_visit, id_visit]
+      );
 
-    return result.affectedRows > 0;
-  },
+      return result.affectedRows > 0;
+    },
+
   // Ambil detail developer + data jumlah dari tabel developer
   getDetail: async (kodeCabang, namaDeveloper) => {
     const [rows] = await pool.query(

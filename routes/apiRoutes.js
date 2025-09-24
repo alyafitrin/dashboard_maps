@@ -119,11 +119,11 @@ router.post('/developer-visits', upload.single('foto_visit'), async (req, res) =
       kode_cabang: req.body.kode_cabang,
       nama_developer: req.body.nama_developer,
       visit_date: req.body.visit_date,
-      jumlah_kavling: req.body.jumlah_kavling,
-      ready_stock: req.body.ready_stock,
-      sisa_potensi: req.body.sisa_potensi,
-      terjual: req.body.terjual,
-      foto_visit: req.file ? `/uploads/${req.file.filename}` : null
+      jumlah_kavling: req.body.jumlah_kavling || 0,
+      ready_stock: req.body.ready_stock || 0,
+      sisa_potensi: req.body.sisa_potensi || 0,
+      terjual: req.body.terjual || 0,
+      foto_visit: req.file ? `/uploads/${req.file.filename}` : req.body.foto_visit || null
     };
 
     const data = await Developer.createVisit(visitData);
@@ -134,10 +134,20 @@ router.post('/developer-visits', upload.single('foto_visit'), async (req, res) =
   }
 });
 
-// PUT /api/developer-visits/:id_visit - Update visit
-router.put('/developer-visits/:id_visit', async (req, res) => {
+
+// PUT /api/developer-visits/:id_visit - Update visit (dengan upload foto opsional)
+router.put('/developer-visits/:id_visit', upload.single('foto_visit'), async (req, res) => {
   try {
-    const updated = await Developer.updateVisit(req.params.id_visit, req.body);
+    const visitData = {
+      visit_date: req.body.visit_date,
+      jumlah_kavling: req.body.jumlah_kavling || 0,
+      ready_stock: req.body.ready_stock || 0,
+      sisa_potensi: req.body.sisa_potensi || 0,
+      terjual: req.body.terjual || 0,
+      foto_visit: req.file ? `/uploads/${req.file.filename}` : req.body.foto_visit || null
+    };
+
+    const updated = await Developer.updateVisit(req.params.id_visit, visitData);
 
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Visit not found' });
@@ -149,6 +159,8 @@ router.put('/developer-visits/:id_visit', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+
 
 // DELETE /api/developer-visits/:id_visit - Hapus visit
 router.delete('/developer-visits/:id_visit', async (req, res) => {

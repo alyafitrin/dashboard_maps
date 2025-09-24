@@ -197,73 +197,105 @@
         </footer>
     </div>
 
-    <!-- Modal Developer -->
-    <div class="modal fade" id="developerModal" tabindex="-1" aria-labelledby="developerModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable modal-lg modal-dialog-centered">
-        <div class="modal-content">
-        
-        <!-- Header -->
-        <div class="modal-header bg-primary text-white">
-            <h5 class="modal-title" id="developerModalLabel">Detail Developer</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Modal Developer -->
+<div class="modal fade" id="developerModal" tabindex="-1" aria-labelledby="developerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg modal-dialog-centered">
+    <div class="modal-content">
+    
+      <!-- Header -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="developerModalLabel">Detail Developer</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+
+        <!-- Nama Developer -->
+        <h4 id="dev-title" class="text-center fw-bold mb-3"></h4>
+
+        <!-- Foto Visit -->
+        <div id="developer-photo" class="mb-3 text-center">
+          <img src="/uploads/placeholder.jpg" alt="Foto Visit" 
+               class="img-fluid rounded shadow" style="max-height:250px; object-fit:cover;">
         </div>
 
-        <!-- Body -->
-        <div class="modal-body">
-
-            <!-- Nama Developer di Atas Foto -->
-            <h4 id="dev-title" class="text-center fw-bold mb-3"></h4>
-
-            <!-- Foto Visit -->
-            <div id="developer-photo" class="mb-3 text-center">
-            <!-- Foto visit muncul di sini -->
-            <img src="/uploads/placeholder.jpg" alt="Foto Visit" class="img-fluid rounded shadow">
-            </div>
-
-            <!-- Data Developer (Sikumbang) -->
-            <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-light fw-bold">📊 Data Developer (Sikumbang)</div>
-            <div class="card-body">
-                <p><strong>Project:</strong> <span id="dev-project"></span></p>
-                <p><strong>Tipe:</strong> <span id="dev-tipe"></span></p>
-                <p><strong>Kavling:</strong> <span id="dev-kavling"></span></p>
-                <p><strong>Ready Stock:</strong> <span id="dev-ready"></span></p>
-                <p><strong>Sisa Potensi:</strong> <span id="dev-potensi"></span></p>
-                <p><strong>Terjual:</strong> <span id="dev-terjual"></span></p>
-            </div>
-            </div>
-
-            <!-- Data Visit Sales -->
-            <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-light fw-bold">📌 Data Visit Sales</div>
-            <div class="card-body" id="visit-section">
-                <!-- Jika ada data visit -->
-                <div id="visit-data" style="display:none;">
-                <p><strong>Tanggal Visit:</strong> <span id="visit-tanggal"></span></p>
-                <p><strong>Kavling:</strong> <span id="visit-kavling"></span></p>
-                <p><strong>Ready Stock:</strong> <span id="visit-ready"></span></p>
-                <p><strong>Sisa Potensi:</strong> <span id="visit-potensi"></span></p>
-                <p><strong>Terjual:</strong> <span id="visit-terjual"></span></p>
-                </div>
-
-                <!-- Jika belum ada data visit -->
-                <div id="visit-empty" class="text-muted text-center">
-                Belum ada data visit. Silakan tambah visit pertama.
-                </div>
-            </div>
-            </div>
-
+        <!-- Data Developer (Sikumbang) -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header bg-light fw-bold">📊 Data Developer (Sikumbang)</div>
+          <div class="card-body">
+            <p><strong>Project:</strong> <span id="dev-project"></span></p>
+            <p><strong>Tipe:</strong> <span id="dev-tipe"></span></p>
+            <p><strong>Kavling:</strong> <span id="dev-kavling"></span></p>
+            <p><strong>Ready Stock:</strong> <span id="dev-ready"></span></p>
+            <p><strong>Sisa Potensi:</strong> <span id="dev-potensi"></span></p>
+            <p><strong>Terjual:</strong> <span id="dev-terjual"></span></p>
+          </div>
         </div>
 
-        <!-- Footer -->
-        <div class="modal-footer">
-            <!-- Tombol akan di-toggle lewat JS -->
-            <button type="button" id="btn-add-visit" class="btn btn-success">➕ Tambah Visit Baru</button>
-            <button type="button" id="btn-update-visit" class="btn btn-warning" style="display:none;">✏️ Update Data Visit</button>
+        <!-- Data Visit Sales -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header bg-light fw-bold">📌 Data Visit Sales</div>
+          <div class="card-body">
+            
+            <!-- Jika ada data visit -->
+            <div id="visit-data" style="display:none;">
+              <p><strong>Tanggal Visit:</strong> <span id="visit-tanggal"></span></p>
+              <p><strong>Kavling:</strong> <span id="visit-kavling"></span></p>
+              <p><strong>Ready Stock:</strong> <span id="visit-ready"></span></p>
+              <p><strong>Sisa Potensi:</strong> <span id="visit-potensi"></span></p>
+              <p><strong>Terjual:</strong> <span id="visit-terjual"></span></p>
+            </div>
+
+            <!-- Jika belum ada data visit -->
+            <div id="visit-empty" class="text-muted text-center">
+              Belum ada data visit. Silakan tambah visit pertama.
+            </div>
+
+            <!-- Form Input Visit (hidden by default, muncul saat tambah/update) -->
+            <form id="visitForm" style="display:none;" enctype="multipart/form-data">
+              <div class="mb-3">
+                <label for="visit-date" class="form-label">Tanggal Visit</label>
+                <input type="date" class="form-control" id="visit-date" name="visit_date" required>
+              </div>
+              <div class="mb-3">
+                <label for="visit-kavling" class="form-label">Jumlah Kavling</label>
+                <input type="number" class="form-control" id="visit-kavling" name="jumlah_kavling" min="0" required>
+              </div>
+              <div class="mb-3">
+                <label for="visit-ready" class="form-label">Ready Stock</label>
+                <input type="number" class="form-control" id="visit-ready" name="ready_stock" min="0" required>
+              </div>
+              <div class="mb-3">
+                <label for="visit-potensi" class="form-label">Sisa Potensi</label>
+                <input type="number" class="form-control" id="visit-potensi" name="sisa_potensi" min="0" required>
+              </div>
+              <div class="mb-3">
+                <label for="visit-terjual" class="form-label">Terjual</label>
+                <input type="number" class="form-control" id="visit-terjual" name="terjual" min="0" required>
+              </div>
+              <div class="mb-3">
+                <label for="visit-foto" class="form-label">Foto Visit</label>
+                <input type="file" class="form-control" id="visit-foto" name="foto_visit" accept="image/*">
+              </div>
+              <input type="hidden" id="visit-kode-cabang" name="kode_cabang">
+              <input type="hidden" id="visit-nama-developer" name="nama_developer">
+            </form>
+          </div>
         </div>
-        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button type="button" id="btn-add-visit" class="btn btn-success">➕ Tambah Visit Baru</button>
+        <button type="button" id="btn-update-visit" class="btn btn-warning" style="display:none;">✏️ Update Data Visit</button>
+        <button type="submit" form="visitForm" class="btn btn-primary" id="btn-save-visit" style="display:none;">💾 Simpan</button>
+      </div>
     </div>
-    </div>
+  </div>
+</div>
+
+
 
 
     <!-- Bootstrap JS & Popper -->

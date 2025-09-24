@@ -403,19 +403,39 @@ function plotBranchDataOnMap(data) {
     }
 }
 
-function showDeveloperModal(devData, visitData) {
-    // Set judul modal
-    document.getElementById("dev-title").textContent = devData.nama_developer;  
+// ===========================
+// Fungsi tampilkan modal developer
+// ===========================
+function showDeveloperModal(devData, visitData, kodeCabang) {
+  // Simpan kode cabang & nama developer ke hidden input form
+  document.getElementById("visit-kode-cabang").value = kodeCabang;
+  document.getElementById("visit-nama-developer").value = devData.nama_developer;
+
+  // Hidden input id_visit
+  let idVisitInput = document.getElementById("visit-id");
+  if (!idVisitInput) {
+    idVisitInput = document.createElement("input");
+    idVisitInput.type = "hidden";
+    idVisitInput.id = "visit-id";
+    idVisitInput.name = "id_visit";
+    document.getElementById("visitForm").appendChild(idVisitInput);
+  }
+  idVisitInput.value = visitData ? visitData.id_visit : "";
+
+  // Judul developer
+  document.getElementById("dev-title").textContent = devData.nama_developer;
+  document.getElementById("dev-title").dataset.kodeCabang = kodeCabang;
+
   // Foto visit
   const photoEl = document.getElementById("developer-photo");
   photoEl.innerHTML = visitData && visitData.foto_visit
-    ? `<img src="${visitData.foto_visit}" class="img-fluid rounded shadow">`
-    : `<img src="/uploads/placeholder.jpg" class="img-fluid rounded shadow">`;
+    ? `<img src="${visitData.foto_visit}" class="img-fluid rounded shadow" style="max-height:250px; object-fit:cover;">`
+    : `<img src="/uploads/placeholder.jpg" class="img-fluid rounded shadow" style="max-height:250px; object-fit:cover;">`;
 
   // Data Sikumbang
-  document.getElementById("dev-project").textContent = devData.project || '-';
-  document.getElementById("dev-tipe").textContent = devData.tipe || '-';
-  document.getElementById("dev-kavling").textContent = devData.kavling || 0;
+  document.getElementById("dev-project").textContent = devData.project || "-";
+  document.getElementById("dev-tipe").textContent = devData.tipe || "-";
+  document.getElementById("dev-kavling").textContent = devData.jumlah_kavling || 0;
   document.getElementById("dev-ready").textContent = devData.ready_stock || 0;
   document.getElementById("dev-potensi").textContent = devData.sisa_potensi || 0;
   document.getElementById("dev-terjual").textContent = devData.terjual || 0;
@@ -441,28 +461,100 @@ function showDeveloperModal(devData, visitData) {
     document.getElementById("btn-update-visit").style.display = "none";
   }
 
+  // Reset form state
+  document.getElementById("visitForm").reset();
+  document.getElementById("visitForm").style.display = "none";
+  document.getElementById("btn-save-visit").style.display = "none";
+
   // Tampilkan modal
-  const modal = new bootstrap.Modal(document.getElementById('developerModal'));
+  const modal = new bootstrap.Modal(document.getElementById("developerModal"));
   modal.show();
 }
 
-
+// ===========================
+// Open Developer Detail
+// ===========================
 window.openDeveloperDetail = async function(kodeCabang, namaDeveloper) {
   try {
-    const res = await fetch(`/api/developer-detail?kode_cabang=${kodeCabang}&nama_developer=${encodeURIComponent(namaDeveloper)}`);
-    const result = await res.json();
+    const devRes = await fetch(`/api/developers/${kodeCabang}`);
+    const devResult = await devRes.json();
 
-    if (result.success) {
-      const { developer, visit } = result.data;
-      showDeveloperModal(developer, visit); // tampilkan modal
-    } else {
-      alert("❌ Developer tidak ditemukan");
+    if (!devResult.success) throw new Error("Gagal ambil data developer");
+
+    const devData = devResult.data.find(d => d.nama_developer === namaDeveloper);
+    if (!devData) throw new Error("Developer tidak ditemukan");
+
+    const visitRes = await fetch(`/api/developer-visits?kode_cabang=${kodeCabang}&nama_developer=${encodeURIComponent(namaDeveloper)}`);
+    const visitResult = await visitRes.json();
+
+    let visitData = null;
+    if (visitResult.success && visitResult.data.length > 0) {
+      visitData = visitResult.data[0];
     }
+
+    showDeveloperModal(devData, visitData, kodeCabang);
   } catch (err) {
-    console.error("Error:", err);
+    console.error(err);
     alert("❌ Gagal memuat detail developer");
   }
 };
+
+// ===========================
+// Event Tambah & Update Visit
+// ===========================
+document.getElementById("btn-add-visit").addEventListener("click", () => {
+  document.getElementById("visitForm").style.display = "block";
+  document.getElementById("btn-save-visit").style.display = "inline-block";
+  document.getElementById("btn-add-visit").style.display = "none";
+  document.getElementById("btn-update-visit").style.display = "none";
+});
+
+document.getElementById("btn-update-visit").addEventListener("click", () => {
+  document.getElementById("visitForm").style.display = "block";
+  document.getElementById("btn-save-visit").style.display = "inline-block";
+  document.getElementById("btn-add-visit").style.display = "none";
+  document.getElementById("btn-update-visit").style.display = "none";
+});
+
+// ===========================
+// Submit Visit Form (Tambah/Update)
+// ===========================
+document.getElementById("visitForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const form = e.target;
+  const formData = new FormData(form);
+
+  const idVisit = document.getElementById("visit-id").value;
+  let url = "/api/developer-visits";
+  let method = "POST";
+
+  if (idVisit) {
+    url = `/api/developer-visits/${idVisit}`;
+    method = "PUT";
+  }
+
+  try {
+    const res = await fetch(url, { method, body: formData });
+    const result = await res.json();
+
+    if (result.success) {
+      alert(idVisit ? "✅ Data visit berhasil diupdate" : "✅ Data visit berhasil ditambahkan");
+
+      // Refresh modal detail dengan data terbaru
+      const kodeCabang = document.getElementById("visit-kode-cabang").value;
+      const namaDev = document.getElementById("visit-nama-developer").value;
+      await openDeveloperDetail(kodeCabang, namaDev);
+    } else {
+      alert("❌ Gagal menyimpan: " + result.message);
+    }
+  } catch (err) {
+    console.error("Error saving visit:", err);
+    alert("❌ Terjadi kesalahan saat menyimpan data");
+  }
+});
+
+
 
 function toggleAreaFilterAccess() {
     const areaFilter = document.getElementById('filter-area');
@@ -680,49 +772,6 @@ function setupEventListeners() {
     });
 
 }
-
-// Handle submit form visit
-document.addEventListener("DOMContentLoaded", function() {
-  const form = document.getElementById("visitForm");
-  form.addEventListener("submit", async function(e) {
-    e.preventDefault();
-
-    const kodeCabang = document.getElementById("visit-kode-cabang").value;
-    const namaDeveloper = document.getElementById("visit-nama-developer").value;
-
-    const formData = new FormData();
-    formData.append("kode_cabang", kodeCabang);
-    formData.append("nama_developer", namaDeveloper);
-    formData.append("visit_date", document.getElementById("visit-date").value);
-    formData.append("jumlah_kavling", document.getElementById("visit-kavling").value);
-    formData.append("ready_stock", document.getElementById("visit-ready").value);
-    formData.append("sisa_potensi", document.getElementById("visit-potensi").value);
-    formData.append("terjual", document.getElementById("visit-terjual").value);
-    if (document.getElementById("visit-foto").files[0]) {
-      formData.append("foto_visit", document.getElementById("visit-foto").files[0]);
-    }
-
-    try {
-      const res = await fetch("/api/developer-visits", {
-        method: "POST",
-        body: formData
-      });
-
-      const result = await res.json();
-      if (result.success) {
-        alert("✅ Visit berhasil ditambahkan!");
-        openDeveloperDetail(kodeCabang, namaDeveloper); // refresh riwayat
-        form.reset();
-      } else {
-        alert("❌ Gagal menambah visit: " + result.message);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("❌ Error server.");
-    }
-  });
-});
-
 
 // Fungsi untuk select branch dari popup
 window.selectBranch = function(kodeCabang) {
