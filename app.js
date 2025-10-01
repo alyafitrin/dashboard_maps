@@ -1,28 +1,38 @@
 // app.js
 const express = require('express');
+const path = require('path');
 require('dotenv').config();
 const pool = require('./database/database');
 
 // Import Routes
 const apiRoutes = require('./routes/apiRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const PORT = process.env.APP_PORT || 3000;
 
 // Middleware
-app.use(express.json()); // Untuk parsing JSON request body
-app.use(express.static('public')); // Serve static files dari folder 'public'
-app.use('/uploads', express.static('uploads'));
+app.use(express.json()); // parsing JSON
+app.use(express.urlencoded({ extended: true })); // parsing form data
+app.use(express.static(path.join(__dirname, 'public'))); // Serve file statis dari /public
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // serve folder upload
 
-// Use API Routes
+// ===== API Routes =====
 app.use('/api', apiRoutes);
+app.use('/api/admin', adminRoutes);
 
-// Basic route untuk test server
+// ===== Page Routes =====
+// Halaman utama (dashboard maps)
 app.get('/', (req, res) => {
-  res.send('🚀 Server Mandiri Loan Dashboard Jabar is running!');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
+// Halaman admin (CRUD area/cabang/developer/K1)
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// ===== Start server =====
 app.listen(PORT, () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
   console.log(`✅ Database: ${process.env.DB_NAME}`);

@@ -406,9 +406,6 @@ function plotBranchDataOnMap(data) {
 // ===========================
 // Fungsi tampilkan modal developer
 // ===========================
-// ===========================
-// Fungsi tampilkan modal developer
-// ===========================
 function showDeveloperModal(devData, visitData, kodeCabang) {
   // Simpan kode cabang & nama developer ke hidden input form
   document.getElementById("visit-kode-cabang").value = kodeCabang;
@@ -474,30 +471,108 @@ function showDeveloperModal(devData, visitData, kodeCabang) {
   const modal = new bootstrap.Modal(modalEl);
   modal.show();
 
-  // Tambahkan listener hanya sekali (biar tidak dobel)
-  modalEl.addEventListener("hidden.bs.modal", async () => {
+   // ✅ PERBAIKI: Event listener untuk handle modal close dengan benar
+  const handleModalClose = async () => {
     console.log("🔄 Modal ditutup, refresh dashboard...");
-
+    
     // Hapus backdrop kalau masih nyangkut
     const backdrop = document.querySelector(".modal-backdrop");
     if (backdrop) backdrop.remove();
     document.body.classList.remove("modal-open");
     document.body.style.overflow = "auto";
 
-    // Refresh sesuai filter terakhir
-    if (currentState.selectedUnit === "region") {
+    // ✅ PERBAIKI: Refresh berdasarkan state filter yang aktif
+    await refreshDashboardAfterModalClose();
+    
+    updateLayerVisibility();
+  };
+
+  // ✅ Hapus listener lama dan tambahkan yang baru (hanya sekali)
+  modalEl.removeEventListener("hidden.bs.modal", handleModalClose);
+  modalEl.addEventListener("hidden.bs.modal", handleModalClose, { once: true });
+}
+
+async function refreshDashboardAfterModalClose() {
+  showLoading(true);
+  
+  try {
+    // Clear semua markers terlebih dahulu
+    areaMarkersLayer.clearLayers();
+    branchMarkersLayer.clearLayers();
+    developerMarkersLayer.clearLayers();
+    k1MarkersLayer.clearLayers();
+
+    const unitFilter = document.getElementById('filter-unit').value;
+    const areaFilter = document.getElementById('filter-area').value;
+    const branchFilter = document.getElementById('filter-branch').value;
+
+    console.log("🔄 Refresh state - Unit:", unitFilter, "Area:", areaFilter, "Branch:", branchFilter);
+
+    if (unitFilter === 'region') {
+      // Mode Region: Tampilkan semua data
       await showAllData();
-    } else if (currentState.selectedUnit === "area" && currentState.selectedArea) {
-      const areaData = await fetchAreaData(currentState.selectedArea.kode_area);
-      if (areaData) {
-        plotAreaMarkers([currentState.selectedArea]);
-        plotBranchDataOnMap(areaData);
-        updateStatistics(areaData);
+      
+    } else if (unitFilter === 'area') {
+      
+      if (!areaFilter) {
+        // Area: Semua Area - tampilkan semua data
+        await showAllData();
+        
+      } else if (areaFilter && !branchFilter) {
+        // Area: Area tertentu, semua cabang
+        const selectedArea = currentState.areas.find(area => area.kode_area === areaFilter);
+        if (selectedArea) {
+          plotAreaMarkers([selectedArea]);
+        }
+        
+        const areaData = await fetchAreaData(areaFilter);
+        if (areaData) {
+          plotBranchDataOnMap(areaData);
+          updateStatistics(areaData);
+        }
+        
+      } else if (areaFilter && branchFilter) {
+        // ✅ PERBAIKAN: Area tertentu, cabang tertentu - TAMPILKAN LAGI FILTER BRANCH
+        const selectedArea = currentState.areas.find(area => area.kode_area === areaFilter);
+        if (selectedArea) {
+          plotAreaMarkers([selectedArea]);
+        }
+        
+        const areaData = await fetchAreaData(areaFilter);
+        if (areaData) {
+          // Filter hanya cabang yang dipilih
+          const selectedBranch = areaData.branches.find(branch => branch.kode_cabang === branchFilter);
+          if (selectedBranch) {
+            const filteredData = {
+              name: areaData.name,
+              branches: [selectedBranch]
+            };
+            plotBranchDataOnMap(filteredData);
+            updateStatistics(filteredData);
+            
+            // Zoom ke cabang yang dipilih
+            if (selectedBranch.latitude && selectedBranch.longitude) {
+              map.flyTo([selectedBranch.latitude, selectedBranch.longitude], 13, {
+                duration: 1,
+                easeLinearity: 0.25
+              });
+            }
+          }
+        }
       }
+      
+    } else {
+      // Mode kosong/default
+      map.setView([-6.9175, 107.6191], 8);
+      updateStatistics({ branches: [] });
     }
 
-    updateLayerVisibility();
-  }, { once: true }); // ✅ hanya sekali per modal open
+  } catch (error) {
+    console.error('❌ Error refreshing dashboard after modal close:', error);
+    showError('Gagal memuat ulang data');
+  } finally {
+    showLoading(false);
+  }
 }
 
 
@@ -725,6 +800,9 @@ function setupEventListeners() {
         const branchCode = e.target.value;
         
         if (!branchCode || !currentState.selectedArea) return;
+
+        // ✅ SIMPAN STATE BRANCH YANG DIPILIH
+        currentState.selectedBranch = branchCode;
         
         // Cari cabang yang dipilih
         const selectedBranch = currentState.selectedArea.branches.find(
@@ -773,6 +851,10 @@ function setupEventListeners() {
         document.getElementById('filter-branch').disabled = true;
         document.getElementById('filter-branch').innerHTML = '<option value="">-- Pilih Area Terlebih Dahulu --</option>';
 
+        // ✅ RESET STATE BRANCH
+        currentState.selectedBranch = null;
+        currentState.selectedArea = null;
+
         // ✅ SET semua checkbox ON saat reset
         ['show-areas','show-branches','show-developers','show-k1'].forEach(id => {
             const el = document.getElementById(id);
@@ -799,7 +881,6 @@ function setupEventListeners() {
 
         updateLayerVisibility(); // ✅ langsung tampilkan semua layer (siap dipakai)
     });
-
 }
 
 // Fungsi untuk select branch dari popup

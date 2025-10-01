@@ -117,6 +117,37 @@ const Area = {
     } catch (error) {
       throw error;
     }
+  },
+    // CREATE Area
+  create: async (data) => {
+    const { kode_area, nama_area, latitude, longitude } = data;
+    const [result] = await pool.query(
+      `INSERT INTO area (kode_area, nama_area, latitude, longitude)
+       VALUES (?, ?, ?, ?)`,
+      [kode_area, nama_area, latitude, longitude]
+    );
+    return { id: result.insertId, ...data };
+  },
+
+  // UPDATE Area
+  update: async (kode_area, data) => {
+    const { nama_area, latitude, longitude } = data;
+    const [result] = await pool.query(
+      `UPDATE area
+       SET nama_area = ?, latitude = ?, longitude = ?
+       WHERE kode_area = ?`,
+      [nama_area, latitude, longitude, kode_area]
+    );
+    return result.affectedRows > 0;
+  },
+
+  // DELETE Area
+  delete: async (kode_area) => {
+    const [result] = await pool.query(
+      `DELETE FROM area WHERE kode_area = ?`,
+      [kode_area]
+    );
+    return result.affectedRows > 0;
   }
 };
 

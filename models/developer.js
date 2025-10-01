@@ -5,13 +5,121 @@ const Developer = {
   // Ambil semua developer berdasarkan kode cabang
   getByCabang: async (kodeCabang) => {
     const [rows] = await pool.query(
-      `SELECT id_developer, dev AS nama_developer, project, tipe, latitude, longitude,
+      `SELECT id_developer, kode_area, area,dev AS nama_developer, project, tipe, latitude, longitude,
               jumlah_kavling, ready_stock, sisa_potensi, terjual
        FROM developer
        WHERE kode_cabang = ?`,
       [kodeCabang]
     );
     return rows;
+  },
+
+  // CREATE
+  create: async (data) => {
+    const {
+      kode_area,
+      area,
+      kode_cabang,
+      cabang_padanan,
+      project,
+      nama_developer,
+      tipe,
+      latitude,
+      longitude,
+      jumlah_kavling,
+      ready_stock,
+      sisa_potensi,
+      terjual
+    } = data;
+
+    const [result] = await pool.query(
+      `INSERT INTO developer
+      (kode_area, area, kode_cabang, cabang_padanan, project, dev, tipe, latitude, longitude,
+       jumlah_kavling, ready_stock, sisa_potensi, terjual)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        kode_area,
+        area,
+        kode_cabang,
+        cabang_padanan,
+        project,
+        nama_developer,
+        tipe,
+        latitude,
+        longitude,
+        jumlah_kavling,
+        ready_stock,
+        sisa_potensi,
+        terjual
+      ]
+    );
+
+    return { id_developer: result.insertId, ...data };
+  },
+
+  // UPDATE
+  update: async (id_developer, data) => {
+    const {
+      kode_area,
+      area,
+      kode_cabang,
+      cabang_padanan,
+      project,
+      nama_developer,
+      tipe,
+      latitude,
+      longitude,
+      jumlah_kavling,
+      ready_stock,
+      sisa_potensi,
+      terjual
+    } = data;
+
+    const [result] = await pool.query(
+      `UPDATE developer
+       SET kode_area=?, area=?, kode_cabang=?, cabang_padanan=?, project=?, dev=?, tipe=?, latitude=?, longitude=?,
+           jumlah_kavling=?, ready_stock=?, sisa_potensi=?, terjual=?
+       WHERE id_developer=?`,
+      [
+        kode_area,
+        area,
+        kode_cabang,
+        cabang_padanan,
+        project,
+        nama_developer,
+        tipe,
+        latitude,
+        longitude,
+        jumlah_kavling,
+        ready_stock,
+        sisa_potensi,
+        terjual,
+        id_developer
+      ]
+    );
+
+    return result.affectedRows > 0;
+  },
+
+  // DELETE
+  delete: async (id_developer) => {
+    const [result] = await pool.query(
+      `DELETE FROM developer WHERE id_developer = ?`,
+      [id_developer]
+    );
+    return result.affectedRows > 0;
+  },
+
+  // GET by ID
+  getById: async (id_developer) => {
+    const [rows] = await pool.query(
+      `SELECT id_developer, kode_area, area, kode_cabang, cabang_padanan, project,
+              dev AS nama_developer, tipe, latitude, longitude,
+              jumlah_kavling, ready_stock, sisa_potensi, terjual
+       FROM developer WHERE id_developer=?`,
+      [id_developer]
+    );
+    return rows[0] || null;
   },
 
   // Ambil riwayat visit developer (optional filter)

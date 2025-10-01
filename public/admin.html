@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin CRUD - Dashboard Maps</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container my-4">
+  <h2 class="mb-4">⚙️ Admin Panel - CRUD Data</h2>
+
+  <!-- Nav Tabs -->
+  <ul class="nav nav-tabs" id="crudTabs" role="tablist">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#area">Area</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#cabang">Cabang</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#developer">Developer</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#k1">Perusahaan K1</a></li>
+  </ul>
+
+  <!-- Tab Content -->
+  <div class="tab-content p-3 bg-white border border-top-0 rounded-bottom shadow-sm">
+    
+    <!-- Area Tab -->
+    <div class="tab-pane fade show active" id="area" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Daftar Area</h4>
+        <button class="btn btn-primary btn-sm" onclick="showAddAreaForm()">➕ Tambah Area</button>
+    </div>
+    <table class="table table-striped" id="areaTable">
+        <thead>
+        <tr>
+            <th>Kode Area</th>
+            <th>Nama Area</th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+            <th>Aksi</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Data dari JS -->
+        </tbody>
+    </table>
+    </div>
+
+    <!-- CABANG -->
+    <div class="tab-pane fade" id="cabang" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Daftar Cabang</h4>
+        <div class="d-flex gap-2">
+          <input type="text" id="searchCabang" class="form-control form-control-sm" placeholder="Cari cabang...">
+          <button class="btn btn-primary btn-sm" onclick="showAddCabangForm()">➕ Tambah Cabang</button>
+        </div>
+    </div>
+    <table class="table table-striped" id="cabangTable">
+        <thead>
+        <tr>
+            <th>Kode Cabang</th>
+            <th>Nama</th>
+            <th>Posisi</th>
+            <th>Unit Kerja</th>
+            <th>Kode Area</th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+            <th>Kota</th>
+            <th>Aksi</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Data dari JS -->
+        </tbody>
+    </table>
+    <div class="d-flex justify-content-center mt-3" id="pagination"></div>
+    <!-- Modal Cabang -->
+    <div class="modal fade" id="cabangModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="cabangModalTitle">Tambah Cabang</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <form id="cabangForm">
+            <div class="modal-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Kode Cabang</label>
+                  <input type="text" class="form-control" name="kode_cabang" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Nama</label>
+                  <input type="text" class="form-control" name="nama" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Posisi</label>
+                  <input type="text" class="form-control" name="posisi">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Unit Kerja</label>
+                  <input type="text" class="form-control" name="unit_kerja">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Kode Area</label>
+                  <select class="form-select" name="kode_area" id="cabang-kode-area" required>
+                    <option value="">-- Pilih Area --</option>
+                    <!-- Options diisi dari JS -->
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Kota</label>
+                  <input type="text" class="form-control" name="kota">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Latitude</label>
+                  <input type="number" step="any" class="form-control" name="latitude">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Longitude</label>
+                  <input type="number" step="any" class="form-control" name="longitude">
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-success">💾 Simpan</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- DEVELOPER -->
+<div class="tab-pane fade" id="developer" role="tabpanel">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Daftar Developer</h4>
+    <div class="d-flex gap-2">
+      <input type="text" id="developerSearch" class="form-control form-control-sm"
+             placeholder="🔍 Cari Developer / Project / Cabang / Area"
+             onkeyup="loadDeveloper()">
+      <button class="btn btn-primary btn-sm" onclick="showAddDeveloperForm()">➕ Tambah Developer</button>
+    </div>
+  </div>
+  <table class="table table-striped" id="developerTable">
+    <thead>
+      <tr>
+        <th>Kode Area</th>
+        <th>Area</th>
+        <th>Kode Cabang</th>
+        <th>Nama Developer</th>
+        <th>Project</th>
+        <th>Tipe</th>
+        <th>Latitude</th>
+        <th>Longitude</th>
+        <th>Kavling</th>
+        <th>Ready</th>
+        <th>Sisa Potensi</th>
+        <th>Terjual</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div class="d-flex justify-content-center mt-3" id="developerPagination"></div>
+
+  <!-- Modal Developer -->
+  <div class="modal fade" id="developerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Form Developer</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="developerForm">
+            <input type="hidden" id="dev-id" name="id_developer">
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Kode Area *</label>
+                  <select class="form-select" id="dev-kode-area" name="kode_area" required onchange="onAreaChange()">
+                    <option value="">Pilih Kode Area</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Area</label>
+                  <input type="text" class="form-control" id="dev-area" name="area" readonly>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Kode Cabang *</label>
+                  <input type="text" class="form-control" id="dev-kode-cabang" name="kode_cabang" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Cabang Padanan</label>
+                  <input type="text" class="form-control" id="dev-cabang-padanan" name="cabang_padanan">
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Project</label>
+                  <input type="text" class="form-control" id="dev-project" name="project">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Nama Developer *</label>
+                  <input type="text" class="form-control" id="dev-nama" name="nama_developer" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Tipe</label>
+                  <input type="text" class="form-control" id="dev-tipe" name="tipe">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Latitude</label>
+                  <input type="number" step="any" class="form-control" id="dev-lat" name="latitude">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Longitude</label>
+                  <input type="number" step="any" class="form-control" id="dev-lon" name="longitude">
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-3">
+                <div class="mb-3">
+                  <label class="form-label">Jumlah Kavling</label>
+                  <input type="number" class="form-control" id="dev-kavling" name="jumlah_kavling" min="0">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="mb-3">
+                  <label class="form-label">Ready Stock</label>
+                  <input type="number" class="form-control" id="dev-ready" name="ready_stock" min="0">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="mb-3">
+                  <label class="form-label">Sisa Potensi</label>
+                  <input type="number" class="form-control" id="dev-potensi" name="sisa_potensi" min="0">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="mb-3">
+                  <label class="form-label">Terjual</label>
+                  <input type="number" class="form-control" id="dev-terjual" name="terjual" min="0">
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" form="developerForm" class="btn btn-primary">💾 Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- PERUSAHAAN K1 -->
+<div class="tab-pane fade" id="k1" role="tabpanel">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Daftar Perusahaan K1</h4>
+    <div class="d-flex gap-2">
+      <input type="text" id="k1Search" class="form-control form-control-sm" placeholder="🔍 Cari K1 / Cabang" onkeyup="loadK1()">
+      <button class="btn btn-primary btn-sm" onclick="showAddK1Form()">➕ Tambah K1</button>
+    </div>
+  </div>
+  <table class="table table-striped" id="k1Table">
+    <thead>
+      <tr>
+        <th>Nama Perusahaan</th>
+        <th>Kode Cabang</th>
+        <th>Nama Cabang</th>
+        <th>Payroll</th>
+        <th>Latitude</th>
+        <th>Longitude</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div class="d-flex justify-content-center mt-3" id="k1Pagination"></div>
+  <!-- Modal Perusahaan K1 -->
+<div class="modal fade" id="k1Modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Form Perusahaan K1</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="k1Form">
+          <input type="hidden" id="k1-id" name="id_k1">
+
+          <div class="mb-3">
+            <label>Nama Perusahaan</label>
+            <input type="text" class="form-control" id="k1-nama" name="nama_perusahaan" required>
+          </div>
+
+          <div class="mb-3">
+            <label>Kode Cabang</label>
+            <input type="text" class="form-control" id="k1-kode-cabang" name="kode_cabang" required>
+          </div>
+
+          <div class="mb-3">
+            <label>Cabang</label>
+            <input type="text" class="form-control" id="k1-cabang" name="nama_cabang">
+          </div>
+
+          <div class="mb-3">
+            <label>Payroll</label>
+            <input type="number" class="form-control" id="k1-payroll" name="jumlah_payroll">
+          </div>
+
+          <div class="mb-3">
+            <label>Latitude</label>
+            <input type="number" step="any" class="form-control" id="k1-lat" name="latitude">
+          </div>
+
+          <div class="mb-3">
+            <label>Longitude</label>
+            <input type="number" step="any" class="form-control" id="k1-lon" name="longitude">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" form="k1Form" class="btn btn-primary">💾 Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

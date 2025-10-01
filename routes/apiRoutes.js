@@ -224,9 +224,6 @@ router.get('/developer-detail', async (req, res) => {
   }
 });
 
-
-
-
 // GET /api/test - Test endpoint
 router.get('/test', (req, res) => {
   res.json({
