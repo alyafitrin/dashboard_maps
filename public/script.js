@@ -516,25 +516,16 @@ function showDeveloperModal(devData, visitData, kodeCabang) {
   const modal = new bootstrap.Modal(modalEl);
   modal.show();
 
-   // ✅ PERBAIKI: Event listener untuk handle modal close dengan benar
-  const handleModalClose = async () => {
-    console.log("🔄 Modal ditutup, refresh dashboard...");
+// ⬇️ OPSI MINIMAL: Hanya handle backdrop cleanup
+  modalEl.addEventListener("hidden.bs.modal", () => {
+    console.log("✅ Modal ditutup - tidak ada perubahan pada peta");
     
-    // Hapus backdrop kalau masih nyangkut
+    // Bersihkan backdrop jika masih ada
     const backdrop = document.querySelector(".modal-backdrop");
     if (backdrop) backdrop.remove();
     document.body.classList.remove("modal-open");
     document.body.style.overflow = "auto";
-
-    // ✅ PERBAIKI: Refresh berdasarkan state filter yang aktif
-    await refreshDashboardAfterModalClose();
-    
-    updateLayerVisibility();
-  };
-
-  // ✅ Hapus listener lama dan tambahkan yang baru (hanya sekali)
-  modalEl.removeEventListener("hidden.bs.modal", handleModalClose);
-  modalEl.addEventListener("hidden.bs.modal", handleModalClose, { once: true });
+  }, { once: true });
 }
 
 // ⬇️ FUNGSI BARU: Load data tipe developer dari tabel developer_tipe
@@ -595,84 +586,6 @@ async function loadDeveloperTipeData(kodeCabang, project, developer) {
         <small>Gagal memuat data tipe</small>
       </div>
     `;
-  }
-}
-
-async function refreshDashboardAfterModalClose() {
-  showLoading(true);
-  
-  try {
-    // Clear semua markers terlebih dahulu
-    areaMarkersLayer.clearLayers();
-    branchMarkersLayer.clearLayers();
-    developerMarkersLayer.clearLayers();
-    k1MarkersLayer.clearLayers();
-
-    const unitFilter = document.getElementById('filter-unit').value;
-    const areaFilter = document.getElementById('filter-area').value;
-    const branchFilter = document.getElementById('filter-branch').value;
-
-    console.log("🔄 Refresh state - Unit:", unitFilter, "Area:", areaFilter, "Branch:", branchFilter);
-
-    if (unitFilter === 'region') {
-      // Mode Region: Tampilkan semua data
-      await showAllData();
-      
-    } else if (unitFilter === 'area') {
-      
-      if (!areaFilter) {
-        // Area: Semua Area - tampilkan semua data
-        await showAllData();
-        
-      } else if (areaFilter && !branchFilter) {
-        // ✅ PERBAIKAN: Area tertentu, SEMUA CABANG - tampilkan semua cabang di area tersebut
-        const selectedArea = currentState.areas.find(area => area.kode_area === areaFilter);
-        if (selectedArea) {
-          plotAreaMarkers([selectedArea]);
-        }
-        
-        const areaData = await fetchAreaData(areaFilter);
-        if (areaData) {
-          plotBranchDataOnMap(areaData);
-          updateStatistics(areaData);
-        }
-        
-      } else if (areaFilter && branchFilter) {
-        // Area tertentu, cabang tertentu
-        const selectedArea = currentState.areas.find(area => area.kode_area === areaFilter);
-        if (selectedArea) {
-          plotAreaMarkers([selectedArea]);
-        }
-        
-        const areaData = await fetchAreaData(areaFilter);
-        if (areaData) {
-          const selectedBranch = areaData.branches.find(branch => branch.kode_cabang === branchFilter);
-          if (selectedBranch) {
-            const filteredData = {
-              name: areaData.name,
-              branches: [selectedBranch]
-            };
-            plotBranchDataOnMap(filteredData);
-            updateStatistics(filteredData);
-            
-            if (selectedBranch.latitude && selectedBranch.longitude) {
-              map.flyTo([selectedBranch.latitude, selectedBranch.longitude], 13);
-            }
-          }
-        }
-      }
-      
-    } else {
-      // Mode kosong/default
-      map.setView([-6.9175, 107.6191], 8);
-      updateStatistics({ branches: [] });
-    }
-
-  } catch (error) {
-    console.error('❌ Error refreshing dashboard after modal close:', error);
-    showError('Gagal memuat ulang data');
-  } finally {
-    showLoading(false);
   }
 }
 
