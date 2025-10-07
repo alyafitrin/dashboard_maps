@@ -89,6 +89,40 @@ router.get('/developers/:kodeCabang', async (req, res) => {
   }
 });
 
+// GET data tipe developer
+router.get('/developer-tipe', async (req, res) => {
+  try {
+    const { kode_cabang, project, developer } = req.query;
+    
+    if (!kode_cabang || !project || !developer) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "kode_cabang, project, dan developer harus diisi" 
+      });
+    }
+
+    const [rows] = await pool.query(
+      `SELECT cluster, tipe, harga_avg 
+       FROM developer_tipe 
+       WHERE kode_cabang = ? AND project = ? AND developer = ?
+       ORDER BY cluster, tipe`,
+      [kode_cabang, project, developer]
+    );
+
+    res.json({
+      success: true,
+      data: rows
+    });
+
+  } catch (err) {
+    console.error('Error fetching developer tipe:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message 
+    });
+  }
+});
+
 // GET /api/developer-visits - Ambil riwayat visit developer
 // contoh: /api/developer-visits?kode_cabang=00101&nama_developer=PT%20Sejahtera
 router.get('/developer-visits', async (req, res) => {
@@ -231,6 +265,77 @@ router.get('/test', (req, res) => {
     message: 'API is working!',
     timestamp: new Date().toISOString()
   });
+});
+
+router.get('/search', async (req, res) => {
+  try {
+    const q = `%${req.query.q || ''}%`;
+
+    // cari di developer
+    const [developers] = await pool.query(
+      `SELECT id_developer, kode_cabang, dev AS nama, project, latitude, longitude
+       FROM developer
+       WHERE dev LIKE ? OR project LIKE ?`,
+      [q, q]
+    );
+
+    // cari di perusahaan_k1
+    const [k1] = await pool.query(
+      `SELECT id_k1, kode_cabang, nama_perusahaan, latitude, longitude
+       FROM perusahaan_k1
+       WHERE nama_perusahaan LIKE ?`,
+      [q]
+    );
+
+    res.json({
+      success: true,
+      data: [
+        ...developers.map(d => ({
+          type: "developer",
+          label: `${d.nama} (${d.project})`,
+          kode_cabang: d.kode_cabang,
+          lat: d.latitude,
+          lon: d.longitude
+        })),
+        ...k1.map(k => ({
+          type: "k1",
+          label: k.nama_perusahaan,
+          kode_cabang: k.kode_cabang,
+          lat: k.latitude,
+          lon: k.longitude
+        }))
+      ]
+    });
+  } catch (err) {
+    console.error("Error in search:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ================= POTENSI =================
+// GET /api/potensi/:kodeCabang - Ambil data potensi cabang
+router.get('/potensi/:kodeCabang', async (req, res) => {
+  try {
+    const { kodeCabang } = req.params;
+    const [rows] = await pool.query(
+      `SELECT cabang, kode_cabang, 
+              pks, hasil_pks, flpp, hasil_flpp,
+              take_over, hasil_to, top_up, hasil_tu,
+              multiguna, hasil_mu, mix, hasil_mix
+       FROM potensi
+       WHERE kode_cabang = ? LIMIT 1`,
+      [kodeCabang]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Potensi not found' });
+    }
+
+    res.json({ success: true, data: rows[0] });
+  } catch (error) {
+    console.error('Error fetching potensi:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 module.exports = router;

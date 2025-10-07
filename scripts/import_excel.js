@@ -301,13 +301,175 @@ async function importPotensi(file) {
     }
 }
 
+async function importDeveloperTipe(file) {
+    try {
+        const wb = xlsx.readFile(file);
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const raw = xlsx.utils.sheet_to_json(ws, { defval: '' });
+        const rows = raw.map(normalizeRowKeys);
+
+        console.log('📊 Processing Developer Tipe - Total rows:', rows.length);
+
+        // DEBUG: Lihat sample data
+        console.log('🔍 Sample data:', JSON.stringify(rows[0], null, 2));
+
+        let inserted = 0;
+        let updated = 0;
+        let skipped = 0;
+        let errors = 0;
+
+        for (const [index, r] of rows.entries()) {
+            const kode_cabang = (r['Kode Cabang'] || r['kode_cabang'] || '').toString().trim();
+            const project = (r['Project'] || r['project'] || '').toString().trim();
+            const developer = (r['Developer'] || r['developer'] || '').toString().trim();
+            const cluster = (r['Cluster'] || r['cluster'] || '').toString().trim();
+            const tipe = (r['Tipe'] || r['tipe'] || '').toString().trim();
+            
+            // Skip jika data required kosong
+            if (!kode_cabang || !project || !developer || !tipe) {
+                console.log(`⏩ Skip row ${index + 1}: data required kosong - kode_cabang: "${kode_cabang}", project: "${project}", developer: "${developer}", tipe: "${tipe}"`);
+                skipped++;
+                continue;
+            }
+
+            // Parse harga_avg (handle berbagai format)
+            let harga_avg = 0;
+            const hargaRaw = r['Harga avg'] || r['harga_avg'] || r['Harga Rata-rata'] || r['Harga'] || 0;
+            
+            if (typeof hargaRaw === 'number') {
+                harga_avg = hargaRaw;
+            } else if (typeof hargaRaw === 'string') {
+                // Bersihkan string dari karakter non-numeric (kecuali titik dan koma)
+                const cleaned = hargaRaw.toString().replace(/[^\d.,]/g, '');
+                // Handle format Indonesia (1.000.000,00) dan internasional (1,000,000.00)
+                if (cleaned.includes(',') && cleaned.includes('.')) {
+                    // Format: 1.000.000,00 -> 1000000.00
+                    harga_avg = parseFloat(cleaned.replace(/\./g, '').replace(',', '.'));
+                } else if (cleaned.includes(',')) {
+                    // Format: 1,000,000 -> 1000000
+                    harga_avg = parseFloat(cleaned.replace(/,/g, ''));
+                } else {
+                    harga_avg = parseFloat(cleaned);
+                }
+            }
+
+            // Validasi harga_avg
+            if (isNaN(harga_avg) || harga_avg < 0) {
+                harga_avg = 0;
+                console.log(`⚠️ Harga Avg invalid untuk row ${index + 1}, set to 0`);
+            }
+
+            // DEBUG: Lihat data yang diproses
+            if (index < 5) {
+                console.log(`🔍 Processing: "${kode_cabang}", "${project}", "${developer}", "${cluster}", "${tipe}", ${harga_avg}`);
+            }
+
+            try {
+                const [result] = await pool.query(
+                    `INSERT INTO developer_tipe 
+                    (kode_cabang, project, developer, cluster, tipe, harga_avg)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                    cluster=VALUES(cluster), 
+                    harga_avg=VALUES(harga_avg),
+                    created_at=CURRENT_TIMESTAMP`,
+                    [
+                        kode_cabang,
+                        project,
+                        developer,
+                        cluster || null, // cluster bisa null
+                        tipe,
+                        harga_avg
+                    ]
+                );
+
+                if (result.affectedRows === 1) {
+                    inserted++;
+                    console.log(`✅ INSERTED: ${kode_cabang} - ${project} - ${developer} - ${tipe}`);
+                } else if (result.affectedRows === 2) {
+                    updated++;
+                    console.log(`🔄 UPDATED: ${kode_cabang} - ${project} - ${developer} - ${tipe}`);
+                }
+
+                // Progress update setiap 50 baris
+                if ((index + 1) % 50 === 0) {
+                    console.log(`Processed ${index + 1}/${rows.length} developer_tipe rows...`);
+                }
+
+            } catch (error) {
+                console.error(`❌ Error insert developer_tipe untuk ${kode_cabang} - ${project} - ${developer}:`, error.message);
+                errors++;
+                
+                // Jika error karena foreign key constraint, coba insert tanpa validasi
+                if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+                    console.log(`🔄 Trying to insert without foreign key validation for ${kode_cabang}`);
+                    try {
+                        const [result] = await pool.query(
+                            `INSERT IGNORE INTO developer_tipe 
+                            (kode_cabang, project, developer, cluster, tipe, harga_avg)
+                            VALUES (?, ?, ?, ?, ?, ?)`,
+                            [kode_cabang, project, developer, cluster || null, tipe, harga_avg]
+                        );
+                        if (result.affectedRows > 0) {
+                            inserted++;
+                            console.log(`✅ INSERTED (ignore): ${kode_cabang} - ${project} - ${developer} - ${tipe}`);
+                        }
+                    } catch (ignoreError) {
+                        console.error(`❌ Still error for ${kode_cabang} - ${project} - ${developer}:`, ignoreError.message);
+                    }
+                }
+                
+                // Jika error karena duplicate entry, coba update saja
+                else if (error.code === 'ER_DUP_ENTRY') {
+                    console.log(`🔄 Trying to update existing record for ${kode_cabang} - ${project} - ${developer} - ${tipe}`);
+                    try {
+                        const [result] = await pool.query(
+                            `UPDATE developer_tipe 
+                            SET cluster=?, harga_avg=?, created_at=CURRENT_TIMESTAMP
+                            WHERE kode_cabang=? AND project=? AND developer=? AND tipe=?`,
+                            [cluster || null, harga_avg, kode_cabang, project, developer, tipe]
+                        );
+                        if (result.affectedRows > 0) {
+                            updated++;
+                            console.log(`🔄 UPDATED (manual): ${kode_cabang} - ${project} - ${developer} - ${tipe}`);
+                        }
+                    } catch (updateError) {
+                        console.error(`❌ Update also failed for ${kode_cabang} - ${project} - ${developer}:`, updateError.message);
+                    }
+                }
+            }
+        }
+
+        console.log('✅ Import DEVELOPER_TIPE: SELESAI');
+        console.log(`📊 Inserted: ${inserted}, Updated: ${updated}, Skipped: ${skipped}, Errors: ${errors}`);
+
+        // Summary report
+        return {
+            success: true,
+            message: 'Import developer_tipe completed successfully',
+            summary: {
+                totalRows: rows.length,
+                inserted,
+                updated,
+                skipped,
+                errors
+            }
+        };
+
+    } catch (error) {
+        console.error('❌ Error import developer_tipe:', error);
+        throw error;
+    }
+}
+
 
 (async () => {
     try {
         //await importCabang(path.join(__dirname, '..', 'data', 'cabang.xlsx'));
         //await importDeveloper(path.join(__dirname, '..', 'data', 'developer.xlsx'));
         //await importPerusahaanK1(path.join(__dirname, '..', 'data', 'perusahaan_k1.xlsx'));
-        await importPotensi(path.join(__dirname, '..', 'data', 'potensi.xlsx'));
+        //await importPotensi(path.join(__dirname, '..', 'data', 'potensi.xlsx'));
+        await importDeveloperTipe(path.join(__dirname, '..', 'data', 'developer_tipe.xlsx'));
     } catch (e) {
         console.error(e);
     } finally {

@@ -166,3 +166,164 @@ body {
   object-fit: cover;     /* isi penuh area, crop kalau perlu */
   border-radius: 8px;    /* biar rapi */
 }
+
+/* ⬇️ STYLE UNTUK SEARCH DROPDOWN */
+/* ⬆️ STYLE UNTUK SEARCH DROPDOWN - MUNCUL DI ATAS */
+.search-dropdown-container {
+    position: relative;
+}
+
+.search-dropdown-toggle {
+    background: white;
+    border: 1px solid #ced4da;
+    cursor: pointer;
+    position: relative;
+    padding-right: 40px; /* Space for dropdown arrow */
+}
+
+.search-dropdown-toggle::after {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.search-dropdown-toggle .placeholder-text {
+    color: #6c757d;
+}
+
+.search-dropdown-toggle .selected-item {
+    color: #212529;
+    font-weight: 500;
+}
+
+/* ⬆️ DROPDOWN MENU MUNCUL DI ATAS */
+.search-dropdown-menu {
+    width: 100%;
+    max-height: 400px;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid #ced4da;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.15); /* ⬆️ Shadow di atas */
+    
+    /* ⬆️ POSITION DI ATAS */
+    top: auto !important;
+    bottom: 100% !important;
+    transform: none !important;
+    margin-top: 0;
+    margin-bottom: 5px; /* ⬆️ Jarak dari toggle */
+}
+
+/* ⬆️ HAPUS ARROW BAWAH, TAMBAH ARROW ATAS */
+.search-dropdown-menu::before {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 20px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #fff;
+    z-index: 10001;
+}
+
+.search-dropdown-menu::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 19px;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #ced4da;
+    z-index: 10000;
+}
+
+.search-results-container {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* ⬆️ STYLE UNTUK SEARCH RESULT ITEMS */
+.search-result-item {
+    padding: 8px 12px;
+    border: none;
+    background: white;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+    transition: background-color 0.15s;
+}
+
+.search-result-item:hover {
+    background-color: #e3f2fd;
+}
+
+.search-result-item:first-child {
+    border-top: 1px solid #f8f9fa;
+}
+
+.search-result-item .item-label {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.search-result-item .item-meta {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.search-result-item .item-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+}
+
+/* ⬆️ ACTIVE STATE */
+.search-result-item.active {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.search-result-item.active .item-meta {
+    color: #e6f0ff;
+}
+
+/* ⬆️ HIGHLIGHT MARKER STYLE */
+.highlight-marker {
+    z-index: 9999 !important;
+}
+
+/* ⬆️ CUSTOM SCROLLBAR UNTUK DROPDOWN */
+.search-results-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.search-results-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.search-results-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.search-results-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Style untuk tabel tipe developer */
+#dev-tipe-table td {
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+
+#dev-tipe-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  #dev-tipe-table {
+    font-size: 0.875rem;
+  }
+}

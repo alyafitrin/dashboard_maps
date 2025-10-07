@@ -1,5 +1,6 @@
 // Inisialisasi peta dengan view default ke Jawa Barat
 const map = L.map('map').setView([-6.9175, 107.6191], 8);
+const searchHighlightLayer = L.layerGroup().addTo(map);
 
 // Tambahkan tile layer (peta dasar)
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -42,10 +43,25 @@ const createCircleIcon = (color) => {
 
 // Definisi icon untuk tiap kategori
 const icons = {
-    area: createCircleIcon('#3388ff'),     // biru
-    branch: createCircleIcon('#8A2BE2'),   // merah
+    area: L.icon({
+        iconUrl: '/img/area2.png',
+        iconSize: [36, 36],       // ukuran icon (ubah sesuai kebutuhan)
+        iconAnchor: [16, 32],     // titik anchor (biasanya di bagian bawah)
+        popupAnchor: [0, -28]     // posisi popup relatif terhadap icon
+    }),
+    branch: L.icon({
+        iconUrl: '/img/branch.png',
+        iconSize: [28, 28],       // ukuran icon (ubah sesuai kebutuhan)
+        iconAnchor: [16, 32],     // titik anchor (biasanya di bagian bawah)
+        popupAnchor: [0, -28]     // posisi popup relatif terhadap icon
+    }),
     developer: createCircleIcon('#00ff00ff'),// hijau
-    k1: createCircleIcon('#FFC0CB')        // pink
+    k1: L.icon({
+        iconUrl: '/img/k1.png',
+        iconSize: [22, 22],       // ukuran icon (ubah sesuai kebutuhan)
+        iconAnchor: [16, 32],     // titik anchor (biasanya di bagian bawah)
+        popupAnchor: [0, -28]     // posisi popup relatif terhadap icon
+    })        // pink
 };
 
 
@@ -252,28 +268,54 @@ async function showAllData() {
   try {
     showLoading(true);
     
-    // Tampilkan semua marker area
+    console.log("🔄 Loading ALL data (areas, branches, developers, K1)...");
+    
+    // Clear semua markers terlebih dahulu
+    areaMarkersLayer.clearLayers();
+    branchMarkersLayer.clearLayers();
+    developerMarkersLayer.clearLayers();
+    k1MarkersLayer.clearLayers();
+    
+    // 1. Tampilkan semua marker area
     plotAreaMarkers(currentState.areas);
     
-    const allData = {
-      name: 'Semua Area',
-      branches: []
-    };
+    // 2. Kumpulkan semua data dari semua area
+    const allBranches = [];
     
     // Ambil data untuk setiap area dan gabungkan
     for (const area of currentState.areas) {
-      const areaData = await fetchAreaData(area.kode_area);  // Gunakan kode_area
+      console.log(`📥 Fetching data for area: ${area.kode_area}`);
+      const areaData = await fetchAreaData(area.kode_area);
+      
       if (areaData && areaData.branches) {
-        allData.branches = allData.branches.concat(areaData.branches);
+        console.log(`✅ Area ${area.kode_area}: ${areaData.branches.length} branches found`);
+        allBranches.push(...areaData.branches);
+      } else {
+        console.log(`⚠️ Area ${area.kode_area}: No data or no branches`);
       }
     }
     
-    // Plot semua data cabang, developer, K1 ke peta
-    plotBranchDataOnMap(allData);
-    updateStatistics(allData); // Update statistics
+    console.log(`📊 Total branches collected: ${allBranches.length}`);
+    
+    // 3. Plot semua data cabang, developer, K1 ke peta
+    const combinedData = {
+      name: 'Semua Area',
+      branches: allBranches
+    };
+    
+    plotBranchDataOnMap(combinedData);
+    updateStatistics(combinedData);
+    
+    // 4. Zoom untuk menampilkan semua markers
+    if (allBranches.length > 0) {
+      console.log("🎯 Zooming to show all data...");
+    } else {
+      console.log("⚠️ No branch data found to display");
+      map.setView([-6.9175, 107.6191], 8);
+    }
     
   } catch (error) {
-    console.error('Error showing all data:', error);
+    console.error('❌ Error showing all data:', error);
     throw error;
   } finally {
     showLoading(false);
@@ -322,7 +364,7 @@ function plotBranchDataOnMap(data) {
                         <p class="mb-1"><strong>Branch Manager:</strong> ${branch.nama_manager}</p>
                         <p class="mb-2"><strong>Developers:</strong> ${branch.developers.length}</p>
                         <p class="mb-3"><strong>Perusahaan K1:</strong> ${branch.k1Companies.length}</p>
-                        <button onclick="selectBranch('${branch.kode_cabang}')" class="btn btn-primary btn-sm w-100">
+                        <button onclick="openPotensiModal('${branch.kode_cabang}')" class="btn btn-primary btn-sm w-100">
                             Lihat Detail
                         </button>
                     </div>
@@ -432,7 +474,10 @@ function showDeveloperModal(devData, visitData, kodeCabang) {
     ? `<img src="${visitData.foto_visit}" class="img-fluid rounded shadow" style="max-height:250px; object-fit:cover;">`
     : `<img src="/uploads/placeholder.jpg" class="img-fluid rounded shadow" style="max-height:250px; object-fit:cover;">`;
 
-  // Data Sikumbang
+    // ⬇️ LOAD DATA TIPE DEVELOPER
+  loadDeveloperTipeData(kodeCabang, devData.project, devData.nama_developer);
+  
+    // Data Sikumbang
   document.getElementById("dev-project").textContent = devData.project || "-";
   document.getElementById("dev-tipe").textContent = devData.tipe || "-";
   document.getElementById("dev-kavling").textContent = devData.jumlah_kavling || 0;
@@ -492,6 +537,67 @@ function showDeveloperModal(devData, visitData, kodeCabang) {
   modalEl.addEventListener("hidden.bs.modal", handleModalClose, { once: true });
 }
 
+// ⬇️ FUNGSI BARU: Load data tipe developer dari tabel developer_tipe
+async function loadDeveloperTipeData(kodeCabang, project, developer) {
+  try {
+    console.log(`🔍 Loading tipe data for: ${kodeCabang} - ${project} - ${developer}`);
+    
+    // Show loading state
+    document.getElementById('dev-tipe-loading').style.display = 'block';
+    document.getElementById('dev-tipe-content').style.display = 'none';
+    document.getElementById('dev-tipe-empty').style.display = 'none';
+
+    const response = await fetch(`/api/developer-tipe?kode_cabang=${kodeCabang}&project=${encodeURIComponent(project)}&developer=${encodeURIComponent(developer)}`);
+    const result = await response.json();
+
+    // Hide loading
+    document.getElementById('dev-tipe-loading').style.display = 'none';
+
+    if (result.success && result.data && result.data.length > 0) {
+      // Tampilkan data tipe
+      const tipeTable = document.getElementById('dev-tipe-table');
+      tipeTable.innerHTML = '';
+
+      result.data.forEach(tipe => {
+        const row = document.createElement('tr');
+        
+        // Format harga dengan separator ribuan
+        const hargaFormatted = new Intl.NumberFormat('id-ID', {
+          style: 'currency',
+          currency: 'IDR',
+          minimumFractionDigits: 0
+        }).format(tipe.harga_avg || 0);
+
+        row.innerHTML = `
+          <td>${tipe.cluster || '-'}</td>
+          <td>${tipe.tipe || '-'}</td>
+          <td class="fw-bold text-success">${hargaFormatted}</td>
+        `;
+        tipeTable.appendChild(row);
+      });
+
+      document.getElementById('dev-tipe-content').style.display = 'block';
+      console.log(`✅ Loaded ${result.data.length} tipe data`);
+    } else {
+      // Tampilkan pesan kosong
+      document.getElementById('dev-tipe-empty').style.display = 'block';
+      console.log('ℹ️ No tipe data available');
+    }
+
+  } catch (error) {
+    console.error('❌ Error loading developer tipe data:', error);
+    
+    // Hide loading dan show error state
+    document.getElementById('dev-tipe-loading').style.display = 'none';
+    document.getElementById('dev-tipe-empty').style.display = 'block';
+    document.getElementById('dev-tipe-empty').innerHTML = `
+      <div class="text-danger">
+        <small>Gagal memuat data tipe</small>
+      </div>
+    `;
+  }
+}
+
 async function refreshDashboardAfterModalClose() {
   showLoading(true);
   
@@ -519,7 +625,7 @@ async function refreshDashboardAfterModalClose() {
         await showAllData();
         
       } else if (areaFilter && !branchFilter) {
-        // Area: Area tertentu, semua cabang
+        // ✅ PERBAIKAN: Area tertentu, SEMUA CABANG - tampilkan semua cabang di area tersebut
         const selectedArea = currentState.areas.find(area => area.kode_area === areaFilter);
         if (selectedArea) {
           plotAreaMarkers([selectedArea]);
@@ -532,7 +638,7 @@ async function refreshDashboardAfterModalClose() {
         }
         
       } else if (areaFilter && branchFilter) {
-        // ✅ PERBAIKAN: Area tertentu, cabang tertentu - TAMPILKAN LAGI FILTER BRANCH
+        // Area tertentu, cabang tertentu
         const selectedArea = currentState.areas.find(area => area.kode_area === areaFilter);
         if (selectedArea) {
           plotAreaMarkers([selectedArea]);
@@ -540,7 +646,6 @@ async function refreshDashboardAfterModalClose() {
         
         const areaData = await fetchAreaData(areaFilter);
         if (areaData) {
-          // Filter hanya cabang yang dipilih
           const selectedBranch = areaData.branches.find(branch => branch.kode_cabang === branchFilter);
           if (selectedBranch) {
             const filteredData = {
@@ -550,12 +655,8 @@ async function refreshDashboardAfterModalClose() {
             plotBranchDataOnMap(filteredData);
             updateStatistics(filteredData);
             
-            // Zoom ke cabang yang dipilih
             if (selectedBranch.latitude && selectedBranch.longitude) {
-              map.flyTo([selectedBranch.latitude, selectedBranch.longitude], 13, {
-                duration: 1,
-                easeLinearity: 0.25
-              });
+              map.flyTo([selectedBranch.latitude, selectedBranch.longitude], 13);
             }
           }
         }
@@ -659,6 +760,32 @@ document.getElementById("visitForm").addEventListener("submit", async function(e
   }
 });
 
+window.openPotensiModal = async function(kodeCabang) {
+  try {
+    const res = await fetch(`/api/potensi/${kodeCabang}`);
+    const result = await res.json();
+
+    if (!result.success) throw new Error(result.message || "Data tidak ditemukan");
+
+    const p = result.data;
+    const tbody = document.getElementById("potensi-body");
+    tbody.innerHTML = `
+      <tr><td>PKS</td><td>${p.pks}</td><td>${p.hasil_pks}</td></tr>
+      <tr><td>FLPP</td><td>${p.flpp}</td><td>${p.hasil_flpp}</td></tr>
+      <tr><td>Take Over</td><td>${p.take_over}</td><td>${p.hasil_to}</td></tr>
+      <tr><td>Top Up</td><td>${p.top_up}</td><td>${p.hasil_tu}</td></tr>
+      <tr><td>Multiguna</td><td>${p.multiguna}</td><td>${p.hasil_mu}</td></tr>
+      <tr><td>MIX</td><td>${p.mix}</td><td>${p.hasil_mix}</td></tr>
+    `;
+
+    // Tampilkan modal
+    const modal = new bootstrap.Modal(document.getElementById("potensiModal"));
+    modal.show();
+  } catch (err) {
+    console.error("Error loading potensi:", err);
+    alert("❌ Gagal memuat potensi cabang");
+  }
+};
 
 function toggleAreaFilterAccess() {
     const areaFilter = document.getElementById('filter-area');
@@ -752,9 +879,15 @@ function setupEventListeners() {
             k1MarkersLayer.clearLayers();
             
             if (!kodeArea) {
-                // Jika memilih "Semua Area" dalam mode Area: tampilkan semua data
+                // ✅ PERBAIKAN: Jika memilih "Semua Area" - TAMPILKAN SEMUA DATA
+                console.log("🌐 Loading ALL areas data...");
                 branchFilter.disabled = true;
-                branchFilter.innerHTML = '<option value="">-- Pilih Area Terlebih Dahulu --</option>';
+                branchFilter.innerHTML = '<option value="">-- Semua Cabang --</option>';
+                
+                // Tampilkan semua area
+                plotAreaMarkers(currentState.areas);
+                
+                // Tampilkan semua data cabang, developer, K1
                 await showAllData();
                 return;
             }
@@ -777,17 +910,21 @@ function setupEventListeners() {
                 updateStatistics(areaData);
                 
                 // Isi dropdown cabang
-                if (areaData.branches) {
+                if (areaData.branches && areaData.branches.length > 0) {
                     areaData.branches.forEach(branch => {
                         const option = document.createElement('option');
                         option.value = branch.kode_cabang;
                         option.textContent = `${branch.kode_cabang} - ${branch.nama}`;
                         branchFilter.appendChild(option);
                     });
+                    
+                    console.log(`✅ Loaded ${areaData.branches.length} branches for area ${kodeArea}`);
+                } else {
+                    console.log(`⚠️ No branches found for area ${kodeArea}`);
                 }
             }
         } catch (error) {
-            console.error('Error handling area change:', error);
+            console.error('❌ Error handling area change:', error);
             showError('Gagal memuat data area');
         } finally {
             showLoading(false);
@@ -796,20 +933,14 @@ function setupEventListeners() {
     });
 
     // Filter branch change - PERBAIKI
-    document.getElementById('filter-branch').addEventListener('change', function(e) {
+    document.getElementById('filter-branch').addEventListener('change', async function(e) {
         const branchCode = e.target.value;
         
-        if (!branchCode || !currentState.selectedArea) return;
-
-        // ✅ SIMPAN STATE BRANCH YANG DIPILIH
-        currentState.selectedBranch = branchCode;
+        if (!currentState.selectedArea) return;
         
-        // Cari cabang yang dipilih
-        const selectedBranch = currentState.selectedArea.branches.find(
-            branch => branch.kode_cabang === branchCode
-        );
+        showLoading(true);
         
-        if (selectedBranch) {
+        try {
             // Clear semua markers
             areaMarkersLayer.clearLayers();
             branchMarkersLayer.clearLayers();
@@ -817,30 +948,51 @@ function setupEventListeners() {
             k1MarkersLayer.clearLayers();
             
             // Tampilkan marker area yang dipilih
-            const selectedArea = currentState.areas.find(area => 
-                area.kode_area === document.getElementById('filter-area').value
-            );
+            const selectedAreaKode = document.getElementById('filter-area').value;
+            const selectedArea = currentState.areas.find(area => area.kode_area === selectedAreaKode);
             if (selectedArea) {
                 plotAreaMarkers([selectedArea]);
             }
             
-            // Tampilkan hanya cabang yang dipilih beserta developer dan K1-nya
-            const filteredData = {
-                name: currentState.selectedArea.nama_area,
-                branches: [selectedBranch]
-            };
-            plotBranchDataOnMap(filteredData);
-            updateStatistics(filteredData);
-            
-            // Zoom ke cabang yang dipilih
-            if (selectedBranch.latitude && selectedBranch.longitude) {
-                map.flyTo([selectedBranch.latitude, selectedBranch.longitude], 13, {
-                    duration: 1,
-                    easeLinearity: 0.25
-                });
+            if (!branchCode) {
+                // ✅ PERBAIKAN: Jika memilih "Semua Cabang" - tampilkan semua cabang di area tersebut
+                console.log(`🏢 Showing ALL branches for area ${selectedAreaKode}`);
+                plotBranchDataOnMap(currentState.selectedArea);
+                updateStatistics(currentState.selectedArea);
+                
+            } else {
+                // Tampilkan hanya cabang tertentu
+                const selectedBranch = currentState.selectedArea.branches.find(
+                    branch => branch.kode_cabang === branchCode
+                );
+                
+                if (selectedBranch) {
+                    currentState.selectedBranch = branchCode;
+                    
+                    const filteredData = {
+                        name: currentState.selectedArea.name || currentState.selectedArea.nama_area,
+                        branches: [selectedBranch]
+                    };
+                    
+                    plotBranchDataOnMap(filteredData);
+                    updateStatistics(filteredData);
+                    
+                    // Zoom ke cabang yang dipilih
+                    if (selectedBranch.latitude && selectedBranch.longitude) {
+                        map.flyTo([selectedBranch.latitude, selectedBranch.longitude], 13, {
+                            duration: 1,
+                            easeLinearity: 0.25
+                        });
+                    }
+                }
             }
             
-            updateLayerVisibility(); // Update visibility
+        } catch (error) {
+            console.error('❌ Error handling branch change:', error);
+            showError('Gagal memuat data cabang');
+        } finally {
+            showLoading(false);
+            updateLayerVisibility();
         }
     });
 
@@ -895,6 +1047,290 @@ window.selectBranch = function(kodeCabang) {
     // Close popup
     map.closePopup();
 };
+
+// ===========================
+// 🔍 SEARCH BAR LOGIC
+// ===========================
+// ⬇️ INISIALISASI SEARCH DROPDOWN
+function initSearchDropdown() {
+    const dropdownToggle = document.getElementById('searchDropdownToggle');
+    const dropdownMenu = document.getElementById('searchDropdownMenu');
+    const searchInput = document.getElementById('searchDropdownInput');
+    const searchResults = document.getElementById('searchResults');
+    const searchLoading = document.getElementById('searchLoading');
+    const placeholderText = dropdownToggle.querySelector('.placeholder-text');
+    const selectedItem = dropdownToggle.querySelector('.selected-item');
+    
+    let searchTimeout = null;
+    let currentResults = [];
+    let selectedIndex = -1;
+
+    // ⬇️ EVENT: TOGGLE DROPDOWN
+    dropdownToggle.addEventListener('click', function() {
+        // Focus ke search input ketika dropdown dibuka
+        setTimeout(() => {
+            if (dropdownMenu.classList.contains('show')) {
+                searchInput.focus();
+            }
+        }, 100);
+    });
+
+    // ⬇️ EVENT: INPUT SEARCH
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        clearTimeout(searchTimeout);
+        
+        // Reset selected index
+        selectedIndex = -1;
+        
+        if (!query) {
+            showInitialState();
+            return;
+        }
+
+        // Show loading
+        searchLoading.style.display = 'block';
+        searchResults.innerHTML = '';
+
+        // Debounce search
+        searchTimeout = setTimeout(async () => {
+            try {
+                const results = await fetchSearchResults(query);
+                currentResults = results;
+                renderSearchResults(results);
+            } catch (error) {
+                console.error('Search error:', error);
+                showErrorState();
+            } finally {
+                searchLoading.style.display = 'none';
+            }
+        }, 300);
+    });
+
+    // ⬇️ EVENT: KEYBOARD NAVIGATION
+    searchInput.addEventListener('keydown', function(e) {
+        if (!currentResults.length) return;
+
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, currentResults.length - 1);
+                updateSelection();
+                break;
+                
+            case 'ArrowUp':
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                updateSelection();
+                break;
+                
+            case 'Enter':
+                e.preventDefault();
+                if (selectedIndex >= 0 && currentResults[selectedIndex]) {
+                    selectSearchResult(currentResults[selectedIndex]);
+                }
+                break;
+                
+            case 'Escape':
+                // Close dropdown on escape
+                const bootstrapDropdown = bootstrap.Dropdown.getInstance(dropdownToggle);
+                if (bootstrapDropdown) {
+                    bootstrapDropdown.hide();
+                }
+                break;
+        }
+    });
+
+    // ⬇️ FUNGSI RENDER HASIL PENCARIAN
+    function renderSearchResults(results) {
+        searchResults.innerHTML = '';
+
+        if (results.length === 0) {
+            searchResults.innerHTML = `
+                <div class="text-center text-muted p-3">
+                    <small>Tidak ada hasil ditemukan</small>
+                </div>
+            `;
+            return;
+        }
+
+        results.forEach((item, index) => {
+            const resultItem = document.createElement('button');
+            resultItem.type = 'button';
+            resultItem.className = 'search-result-item';
+            resultItem.innerHTML = `
+                <div class="item-label">${item.label}</div>
+                <div class="item-meta">
+                    <span class="badge bg-secondary item-badge">${item.type}</span>
+                    ${item.additional_info ? ` • ${item.additional_info}` : ''}
+                </div>
+            `;
+            
+            resultItem.addEventListener('click', () => {
+                selectSearchResult(item);
+            });
+            
+            resultItem.addEventListener('mouseenter', () => {
+                selectedIndex = index;
+                updateSelection();
+            });
+            
+            searchResults.appendChild(resultItem);
+        });
+    }
+
+    // ⬇️ FUNGSI UPDATE SELECTION VISUAL
+    function updateSelection() {
+        const allItems = searchResults.querySelectorAll('.search-result-item');
+        
+        allItems.forEach((item, index) => {
+            if (index === selectedIndex) {
+                item.classList.add('active');
+                // Scroll into view if needed
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+
+    // ⬇️ FUNGSI TAMPILKAN STATE AWAL
+    function showInitialState() {
+        searchResults.innerHTML = `
+            <div class="text-center text-muted p-3">
+                <small>Ketik untuk mencari developer atau perusahaan K1</small>
+            </div>
+        `;
+        currentResults = [];
+    }
+
+    // ⬇️ FUNGSI TAMPILKAN ERROR STATE
+    function showErrorState() {
+        searchResults.innerHTML = `
+            <div class="text-center text-danger p-3">
+                <small>Gagal memuat hasil pencarian</small>
+            </div>
+        `;
+    }
+
+    // ⬇️ FUNGSI PILIH HASIL
+    function selectSearchResult(item) {
+        // Update dropdown toggle text
+        placeholderText.style.display = 'none';
+        selectedItem.textContent = item.label;
+        selectedItem.style.display = 'inline';
+        
+        // Close dropdown
+        const bootstrapDropdown = bootstrap.Dropdown.getInstance(dropdownToggle);
+        if (bootstrapDropdown) {
+            bootstrapDropdown.hide();
+        }
+        
+        // Clear search input
+        searchInput.value = '';
+        showInitialState();
+        
+        // Process selection
+        processSearchSelection(item);
+    }
+
+    // ⬇️ RESET DROPDOWN
+    function resetDropdown() {
+        placeholderText.style.display = 'inline';
+        selectedItem.style.display = 'none';
+        selectedItem.textContent = '';
+        searchInput.value = '';
+        showInitialState();
+        currentResults = [];
+        selectedIndex = -1;
+    }
+
+    // ⬇️ ATTACH RESET FUNCTION TO GLOBAL SCOPE
+    window.resetSearchDropdown = resetDropdown;
+
+    // Initialize
+    showInitialState();
+}
+
+// ⬇️ FUNGSI PROSES PILIHAN SEARCH (SAMA SEPERTI SEBELUMNYA)
+function processSearchSelection(item) {
+    console.log("📍 Selected:", item);
+    
+    // Bersihkan highlight lama
+    searchHighlightLayer.clearLayers();
+
+    if (item.lat && item.lon) {
+        const lat = parseFloat(item.lat);
+        const lon = parseFloat(item.lon);
+
+        // Marker highlight persisten
+        const highlightMarker = L.marker([lat, lon], {
+            icon: L.divIcon({
+                className: 'highlight-marker',
+                html: `<div style="
+                    background-color: gold; 
+                    width: 32px; 
+                    height: 32px; 
+                    border-radius: 50%; 
+                    border: 4px solid red;
+                    box-shadow: 0 0 15px rgba(255,0,0,0.8);
+                    animation: pulse 1.5s infinite;
+                "></div>`,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            }),
+            zIndexOffset: 1000
+        }).bindPopup(`
+            <div class="text-center">
+                <h6 class="fw-bold">${item.label}</h6>
+                <small class="text-muted">${item.type}</small>
+                ${item.additional_info ? `<p class="mt-1 mb-0"><small>${item.additional_info}</small></p>` : ''}
+            </div>
+        `);
+
+        highlightMarker.addTo(searchHighlightLayer);
+        highlightMarker.openPopup();
+        
+        map.flyTo([lat, lon], 15, {
+            duration: 1.5,
+            easeLinearity: 0.25
+        });
+    }
+}
+
+// ⬇️ RESET SEARCH - UPDATE VERSION
+document.getElementById("reset-search").addEventListener("click", () => {
+    searchHighlightLayer.clearLayers();
+    
+    // Reset dropdown jika function tersedia
+    if (window.resetSearchDropdown) {
+        window.resetSearchDropdown();
+    }
+});
+
+// ⬇️ INITIALIZE SAAT DOM READY
+document.addEventListener('DOMContentLoaded', function() {
+    // Pastikan Bootstrap sudah loaded
+    if (typeof bootstrap !== 'undefined') {
+        initSearchDropdown();
+    } else {
+        // Fallback jika Bootstrap belum ready
+        setTimeout(initSearchDropdown, 100);
+    }
+});
+
+// ⬇️ FETCH SEARCH RESULTS (SAMA)
+async function fetchSearchResults(query) {
+    try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const result = await res.json();
+        return result.success ? result.data : [];
+    } catch (err) {
+        console.error("Error fetching search:", err);
+        return [];
+    }
+}
+
 
 async function loadDeveloperStatus(kodeCabang) {
   try {

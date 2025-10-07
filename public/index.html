@@ -93,12 +93,57 @@
                             <option value="">-- Pilih Area Terlebih Dahulu --</option>
                         </select>
                     </div>
-                    
                     <div class="col-md-4">
                         <button id="reset-btn" class="btn btn-outline-danger w-100">
                             <i class="bi bi-arrow-clockwise"></i> Reset Peta
                         </button>
                     </div>
+                    <div class="col-md-4">
+                        <div class="search-dropdown-container">
+                            <!-- ⬇️ GANTI INPUT BIASA DENGAN DROPDOWN TOGGLE -->
+                            <button class="form-control text-start search-dropdown-toggle" 
+                                    type="button" 
+                                    id="searchDropdownToggle"
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false">
+                                <span class="placeholder-text">🔍 Cari Developer / Perusahaan K1</span>
+                                <span class="selected-item" style="display: none;"></span>
+                            </button>
+                            
+                            <!-- ⬇️ DROPDOWN MENU DENGAN SEARCH INTERNAL -->
+                            <div class="dropdown-menu search-dropdown-menu" id="searchDropdownMenu">
+                                <!-- SEARCH INPUT DI DALAM DROPDOWN -->
+                                <div class="p-2 border-bottom">
+                                    <input type="text" 
+                                        class="form-control form-control-sm" 
+                                        id="searchDropdownInput" 
+                                        placeholder="Ketik untuk mencari...">
+                                </div>
+                                
+                                <!-- RESULTS CONTAINER -->
+                                <div class="search-results-container" id="searchResults">
+                                    <div class="text-center text-muted p-3">
+                                        <small>Ketik untuk mencari developer atau perusahaan K1</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- LOADING STATE -->
+                                <div class="search-loading" id="searchLoading" style="display: none;">
+                                    <div class="text-center p-2">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <small class="text-muted ms-2">Mencari...</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                        <div class="col-md-4">
+                            <button id="reset-search" class="btn btn-outline-secondary w-100">
+                                ❌ Reset Highlight
+                            </button>
+                        </div>
                 </div>
             </div>
         </section>
@@ -151,7 +196,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Statistics -->
             <div class="col-md-6 mb-4">
                 <div class="card shadow-sm h-100">
@@ -218,6 +262,36 @@
         <div id="developer-photo" class="mb-3 text-center">
           <img src="/uploads/placeholder.jpg" alt="Foto Visit" 
                class="img-fluid rounded shadow" style="max-height:250px; object-fit:cover;">
+        </div>
+
+        <!-- ⬇️ TAMBAHKAN SECTION INI: Informasi Tipe Developer -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header bg-light fw-bold">🏗️ Informasi Tipe & Harga</div>
+          <div class="card-body">
+            <div id="dev-tipe-loading" class="text-center">
+              <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <span class="ms-2">Memuat data tipe...</span>
+            </div>
+            <div id="dev-tipe-content" style="display: none;">
+              <table class="table table-sm table-striped">
+                <thead>
+                  <tr>
+                    <th>Cluster</th>
+                    <th>Tipe</th>
+                    <th>Harga Rata-rata</th>
+                  </tr>
+                </thead>
+                <tbody id="dev-tipe-table">
+                  <!-- Data tipe akan diisi oleh JavaScript -->
+                </tbody>
+              </table>
+            </div>
+            <div id="dev-tipe-empty" class="text-muted text-center" style="display: none;">
+              Tidak ada data tipe tersedia untuk developer ini.
+            </div>
+          </div>
         </div>
 
         <!-- Data Developer (Sikumbang) -->
@@ -290,6 +364,32 @@
         <button type="button" id="btn-add-visit" class="btn btn-success">➕ Tambah Visit Baru</button>
         <button type="button" id="btn-update-visit" class="btn btn-warning" style="display:none;">✏️ Update Data Visit</button>
         <button type="submit" form="visitForm" class="btn btn-primary" id="btn-save-visit" style="display:none;">💾 Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Potensi Cabang -->
+<div class="modal fade" id="potensiModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title">📊 Potensi Cabang</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered">
+          <thead class="table-light">
+            <tr>
+              <th>Jenis</th>
+              <th>Jumlah</th>
+              <th>Hasil</th>
+            </tr>
+          </thead>
+          <tbody id="potensi-body">
+            <!-- data diisi via JS -->
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
