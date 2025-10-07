@@ -135,20 +135,63 @@ function showLoading(show = true) {
 
 // Fungsi untuk update statistics
 function updateStatistics(data) {
+    let totalAreas = 0;
     let totalBranches = 0;
     let totalDevelopers = 0;
     let totalK1 = 0;
 
-    if (data && data.branches) {
+    const unitFilter = document.getElementById('filter-unit').value;
+    const areaFilter = document.getElementById('filter-area').value;
+    const branchFilter = document.getElementById('filter-branch').value;
+
+    console.log("📊 Update statistics - Data received:", data);
+    console.log("📊 Update statistics - Filter:", { unitFilter, areaFilter, branchFilter });
+
+    if (data && data.branches && data.branches.length > 0) {
+        // Hitung berdasarkan data yang sedang ditampilkan
         totalBranches = data.branches.length;
+        
+        // ⬇️ PERBAIKI: Hitung developers dan K1 dengan benar
         data.branches.forEach(branch => {
-            totalDevelopers += branch.developers.length;
-            totalK1 += branch.k1Companies.length;
+            if (branch.developers && Array.isArray(branch.developers)) {
+                totalDevelopers += branch.developers.length;
+            }
+            if (branch.k1Companies && Array.isArray(branch.k1Companies)) {
+                totalK1 += branch.k1Companies.length;
+            }
         });
+
+        // Hitung total areas berdasarkan filter
+        if (unitFilter === 'region') {
+            // Mode Region: hitung semua area yang ada data
+            totalAreas = currentState.areas.length;
+        } else if (unitFilter === 'area') {
+            if (!areaFilter) {
+                // Area: Semua Area - hitung semua area
+                totalAreas = currentState.areas.length;
+            } else {
+                // Area: Area tertentu - hanya 1 area
+                totalAreas = 1;
+            }
+        }
+    } else {
+        // Jika tidak ada data, hitung dari markers yang aktif
+        if (currentState.layerVisibility.areas) {
+            totalAreas = areaMarkersLayer.getLayers().length;
+        }
+        if (currentState.layerVisibility.branches) {
+            totalBranches = branchMarkersLayer.getLayers().length;
+        }
+        if (currentState.layerVisibility.developers) {
+            totalDevelopers = developerMarkersLayer.getLayers().length;
+        }
+        if (currentState.layerVisibility.k1) {
+            totalK1 = k1MarkersLayer.getLayers().length;
+        }
     }
 
     currentState.statistics = {
-        totalAreas: currentState.areas.length,
+        totalAreas: totalAreas,
         totalBranches: totalBranches,
         totalDevelopers: totalDevelopers,
         totalK1: totalK1
@@ -159,6 +202,8 @@ function updateStatistics(data) {
     document.getElementById('total-branches').textContent = currentState.statistics.totalBranches;
     document.getElementById('total-developers').textContent = currentState.statistics.totalDevelopers;
     document.getElementById('total-k1').textContent = currentState.statistics.totalK1;
+
+    console.log("📈 Statistics updated:", currentState.statistics);
 }
 
 // Fungsi utama yang dijalankan saat halaman dimuat
@@ -213,7 +258,6 @@ async function loadAreas() {
     if (result.success) {
       currentState.areas = result.data;
       populateAreaFilter(result.data);
-      updateStatistics(); // Update statistics dengan data areas
       
       // Tampilkan titik koordinat area di peta
       //plotAreaMarkers(result.data);
@@ -443,6 +487,8 @@ function plotBranchDataOnMap(data) {
         // Jika tidak ada data, kembalikan ke view default
         map.setView([-6.9175, 107.6191], 8);
     }
+
+    updateStatistics(data);
 }
 
 // ===========================
@@ -703,16 +749,27 @@ window.openPotensiModal = async function(kodeCabang) {
 function toggleAreaFilterAccess() {
     const areaFilter = document.getElementById('filter-area');
     const areaLabel = document.querySelector('label[for="filter-area"]');
+    const branchFilter = document.getElementById('filter-branch');
+    const branchLabel = document.querySelector('label[for="filter-branch"]');
     
     if (currentState.selectedUnit === 'region' || currentState.selectedUnit === '') {
-        // Mode Region atau belum pilih: disable filter area
+        // Mode Region atau belum pilih: disable filter area DAN cabang
         areaFilter.disabled = true;
         areaFilter.value = ''; // Reset value
         areaLabel.classList.add('text-muted');
+        
+        branchFilter.disabled = true;
+        branchFilter.innerHTML = '<option value="">-- Pilih Area Terlebih Dahulu --</option>';
+        branchLabel.classList.add('text-muted');
+        
     } else if (currentState.selectedUnit === 'area') {
-        // Mode Area: enable filter area
+        // Mode Area: enable filter area, disable cabang sampai area dipilih
         areaFilter.disabled = false;
         areaLabel.classList.remove('text-muted');
+        
+        branchFilter.disabled = true;
+        branchFilter.innerHTML = '<option value="">-- Pilih Area Terlebih Dahulu --</option>';
+        branchLabel.classList.add('text-muted');
     }
 }
 
@@ -746,6 +803,8 @@ function setupEventListeners() {
     // Filter unit change - PERBAIKI
     document.getElementById('filter-unit').addEventListener('change', async function(e) {
         currentState.selectedUnit = e.target.value;
+        
+        // ⬇️ PASTIKAN TOGGLE FILTER ACCESS DIPANGGIL DI SINI
         toggleAreaFilterAccess();
         
         showLoading(true);
@@ -757,21 +816,21 @@ function setupEventListeners() {
             developerMarkersLayer.clearLayers();
             k1MarkersLayer.clearLayers();
             
-        if (currentState.selectedUnit === '') {
-            // mode kosong: hanya area default / kosongkan data
-            map.setView([-6.9175, 107.6191], 8);
-            updateStatistics({ branches: [] });
+            if (currentState.selectedUnit === '') {
+                // mode kosong: hanya area default / kosongkan data
+                map.setView([-6.9175, 107.6191], 8);
+                updateStatistics({ branches: [] });
             } else if (currentState.selectedUnit === 'region') {
-            await showAllData();    // ✅ langsung muat semua titik
+                await showAllData();    // langsung muat semua titik
             } else if (currentState.selectedUnit === 'area') {
-            await showAllData();    // ✅ langsung muat semua titik (sebelum dipersempit per area)
+                await showAllData();    // langsung muat semua titik (sebelum dipersempit per area)
             }
         } catch (err) {
             console.error('Error handling unit change:', err);
             showError('Gagal memuat data');
         } finally {
             showLoading(false);
-            updateLayerVisibility();  // ✅ pastikan semua layer sesuai checkbox (yang default-nya ON)
+            updateLayerVisibility();
         }
     });
 
@@ -781,6 +840,7 @@ function setupEventListeners() {
         
         const kodeArea = e.target.value;
         const branchFilter = document.getElementById('filter-branch');
+        const branchLabel = document.querySelector('label[for="filter-branch"]');
         
         showLoading(true);
         
@@ -792,10 +852,13 @@ function setupEventListeners() {
             k1MarkersLayer.clearLayers();
             
             if (!kodeArea) {
-                // ✅ PERBAIKAN: Jika memilih "Semua Area" - TAMPILKAN SEMUA DATA
+                // Jika memilih "Semua Area" - tampilkan semua data
                 console.log("🌐 Loading ALL areas data...");
+                
+                // ⬇️ DISABLE BRANCH FILTER KETIKA "SEMUA AREA" DIPILIH
                 branchFilter.disabled = true;
                 branchFilter.innerHTML = '<option value="">-- Semua Cabang --</option>';
+                branchLabel.classList.add('text-muted');
                 
                 // Tampilkan semua area
                 plotAreaMarkers(currentState.areas);
@@ -805,15 +868,16 @@ function setupEventListeners() {
                 return;
             }
             
-            // Tampilkan hanya area yang dipilih beserta padanannya
+            // Tampilkan hanya area yang dipilih
             const selectedArea = currentState.areas.find(area => area.kode_area === kodeArea);
             if (selectedArea) {
                 plotAreaMarkers([selectedArea]);
             }
             
-            // Enable branch filter
+            // ⬇️ ENABLE BRANCH FILTER KETIKA AREA TERTENTU DIPILIH
             branchFilter.disabled = false;
             branchFilter.innerHTML = '<option value="">-- Semua Cabang --</option>';
+            branchLabel.classList.remove('text-muted');
             
             // Load dan tampilkan data area yang dipilih
             const areaData = await fetchAreaData(kodeArea);
@@ -841,7 +905,7 @@ function setupEventListeners() {
             showError('Gagal memuat data area');
         } finally {
             showLoading(false);
-            updateLayerVisibility(); // Update visibility setelah data dimuat
+            updateLayerVisibility();
         }
     });
 
@@ -913,8 +977,9 @@ function setupEventListeners() {
         document.getElementById('filter-unit').value = '';
         currentState.selectedUnit = '';
         document.getElementById('filter-area').value = '';
-        document.getElementById('filter-branch').disabled = true;
-        document.getElementById('filter-branch').innerHTML = '<option value="">-- Pilih Area Terlebih Dahulu --</option>';
+        
+        // ⬇️ PASTIKAN TOGGLE FILTER ACCESS DIPANGGIL SAAT RESET
+        toggleAreaFilterAccess();
 
         // ✅ RESET STATE BRANCH
         currentState.selectedBranch = null;
@@ -933,8 +998,6 @@ function setupEventListeners() {
             k1: true
         };
 
-        toggleAreaFilterAccess();
-
         // bersihkan marker & kembali ke view default
         areaMarkersLayer.clearLayers();
         branchMarkersLayer.clearLayers();
@@ -944,7 +1007,7 @@ function setupEventListeners() {
         map.setView([-6.9175, 107.6191], 8);
         updateStatistics({ branches: [] });
 
-        updateLayerVisibility(); // ✅ langsung tampilkan semua layer (siap dipakai)
+        updateLayerVisibility();
     });
 }
 
