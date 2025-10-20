@@ -24,7 +24,7 @@ app.use('/api/admin', adminRoutes);
 // ===== Page Routes =====
 // Halaman utama (dashboard maps)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 // Halaman admin (CRUD area/cabang/developer/K1)

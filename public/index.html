@@ -14,19 +14,48 @@
 
 <body>
     <div class="container-fluid px-4">
-        <!-- Header -->
-        <header class="bg-primary text-white rounded-3 p-4 mb-4 shadow">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="h2 mb-1">🏦 Dashboard Consumer Loan Jawa Barat</h1>
-                    <p class="mb-0 opacity-75">Visualisasi Padanan Area, Cabang, Developer, dan Perusahaan K1</p>
+    <!-- Header -->
+    <header class="header-gradient text-white rounded-3 p-2 mb-4 shadow">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center py-3">
+                <!-- Logo & Brand -->
+                <div class="d-flex align-items-center">
+                    <div class="bg-white rounded p-2 me-3 shadow-sm">
+                        <img src="/img/logo.png" alt="Bank Mandiri" height="35">
+                    </div>
+                    <div>
+                        <h1 class="h5 mb-0 fw-bold">Consumer Loan Dashboard</h1>
+                        <small class="text-light opacity-75">Divisi Regional Jawa Barat</small>
+                    </div>
                 </div>
-                <div class="col-md-4 text-md-end">
-                    <img src="https://www.bankmandiri.co.id/image/logo.svg" alt="Bank Mandiri Logo" height="40" class="d-inline-block align-text-top">
+                
+                <!-- Admin & User Info -->
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Admin Panel Button - Hanya untuk User Region -->
+                    <span id="admin-button-container">
+                        <!-- Button akan diisi oleh JavaScript berdasarkan role -->
+                    </span>
+                    
+                    <!-- User Info & Logout -->
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- User Info -->
+                        <div class="text-end d-none d-md-block border-start ps-3">
+                            <small class="d-block fw-semibold" id="user-display-name">Welcome, User</small>
+                            <small class="text-light opacity-75">
+                                <span id="user-role-badge"></span> • 
+                                <span id="current-time"></span>
+                            </small>
+                        </div>
+
+                        <!-- Logout Button -->
+                        <button id="logout-btn" class="btn btn-outline-light btn-sm d-flex align-items-center gap-2">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
                 </div>
             </div>
-        </header>
-
+        </div>
+    </header>
         <!-- Control Panel -->
         <!-- Checkbox Filter Section -->
         <section class="card mb-4 shadow-sm">
@@ -170,13 +199,15 @@
                         <div class="row g-3">
                             <div class="col-6">
                                 <div class="d-flex align-items-center">
-                                    <span class="legend-color me-2" style="background-color: #3388ff;"></span>
+                                    <img src="img/area2.png" height="35" alt="">
+                                    <!--<span class="legend-color me-2" style="background-color: #3388ff;"></span>-->
                                     <span>Area</span>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="d-flex align-items-center">
-                                    <span class="legend-color me-2" style="background-color: #ff3333;"></span>
+                                    <img src="img/branch.png" height="35" alt="">
+                                    <!--<span class="legend-color me-2" style="background-color: #ff3333;"></span>-->
                                     <span>Cabang</span>
                                 </div>
                             </div>
@@ -261,7 +292,7 @@
         <!-- Foto Visit -->
         <div id="developer-photo" class="mb-3 text-center">
           <img src="/uploads/placeholder.jpg" alt="Foto Visit" 
-               class="img-fluid rounded shadow" style="max-height:250px; object-fit:cover;">
+              class="img-fluid rounded shadow" style="max-height:250px; object-fit:cover;">
         </div>
 
         <!-- ⬇️ TAMBAHKAN SECTION INI: Informasi Tipe Developer -->
@@ -402,6 +433,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Custom JS -->
     <script src="script.js"></script>
+    <script src="auth.js"></script>
 
 </body>
 </html>

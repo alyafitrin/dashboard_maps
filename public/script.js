@@ -58,7 +58,7 @@ const icons = {
     developer: createCircleIcon('#00ff00ff'),// hijau
     k1: L.icon({
         iconUrl: '/img/k1.png',
-        iconSize: [22, 22],       // ukuran icon (ubah sesuai kebutuhan)
+        iconSize: [16, 16],       // ukuran icon (ubah sesuai kebutuhan)
         iconAnchor: [16, 32],     // titik anchor (biasanya di bagian bawah)
         popupAnchor: [0, -28]     // posisi popup relatif terhadap icon
     })        // pink
@@ -1319,6 +1319,111 @@ async function loadDeveloperStatus(kodeCabang) {
   }
 }
 
+// =================== AUTH CHECK ===================
+const userData = JSON.parse(localStorage.getItem('userData'));
+if (!userData) {
+    window.location.href = 'login.html';
+    throw new Error('User not authenticated');
+}
+
+// =================== USER ROLE MANAGEMENT ===================
+let currentUser = userData;
+
+// Initialize user role
+function initializeUserRole() {
+    updateHeaderForUserRole();
+    setupLogout();
+    console.log('👤 User logged in:', currentUser);
+}
+
+// Update header berdasarkan role user
+function updateHeaderForUserRole() {
+    const adminButtonContainer = document.getElementById('admin-button-container');
+    const userDisplayName = document.getElementById('user-display-name');
+    const userRoleBadge = document.getElementById('user-role-badge');
+    
+    if (!currentUser) return;
+    
+    // Update user info
+    userDisplayName.textContent = `Welcome, ${currentUser.displayName}`;
+    
+    // Update role badge dan admin button
+    if (currentUser.role === 'region') {
+        userRoleBadge.innerHTML = '<span class="badge bg-warning text-dark"><i class="fas fa-users me-1"></i>Region</span>';
+        
+        // Show admin button untuk region
+        adminButtonContainer.innerHTML = `
+            <a href="/admin" class="btn btn-warning text-dark btn-sm fw-bold px-3 shadow d-flex align-items-center gap-2">
+                <i class="fas fa-cog"></i> ADMIN PANEL
+            </a>
+        `;
+    } else {
+        userRoleBadge.innerHTML = '<span class="badge bg-info"><i class="fas fa-building me-1"></i>Cabang</span>';
+        
+        // Hide atau disable admin button untuk cabang
+        adminButtonContainer.innerHTML = `
+            <button class="btn btn-outline-light btn-sm d-flex align-items-center gap-2" disabled 
+                    title="Akses terbatas untuk user cabang">
+                <i class="fas fa-cog"></i> ADMIN
+            </button>
+        `;
+    }
+    
+    // Update current time
+    updateCurrentTime();
+}
+
+function updateCurrentTime() {
+    const now = new Date();
+    const options = { 
+        weekday: 'short', 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    };
+    const timeElement = document.getElementById('current-time');
+    if (timeElement) {
+        timeElement.textContent = now.toLocaleDateString('id-ID', options);
+    }
+}
+
+// Logout functionality
+function setupLogout() {
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            if (confirm('Apakah Anda yakin ingin logout?')) {
+                localStorage.removeItem('userData');
+                window.location.href = 'login.html';
+            }
+        });
+    }
+}
+
+// Update time every minute
+setInterval(updateCurrentTime, 60000);
+
+// Tambahkan CSS untuk header
+function addHeaderStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .header-gradient {
+            background: linear-gradient(135deg, #0033a0 0%, #002366 100%) !important;
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #ffd100 0%, #ffc107 100%) !important;
+            border: none !important;
+        }
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #e6b800 0%, #ffc107 100%) !important;
+            transform: translateY(-1px);
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 // Jalankan dashboard ketika halaman siap
 document.addEventListener('DOMContentLoaded', function() {
     // set default mode
@@ -1347,4 +1452,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // jalankan dashboard
     initDashboard();
+
+    // Initialize user role system
+    initializeUserRole();
+    
+    // Tambahkan CSS untuk styling
+    addHeaderStyles();
 });

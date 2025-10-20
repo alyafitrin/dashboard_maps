@@ -4,6 +4,19 @@ body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
+.mandiri-blue {
+    background-color: #0033a0 !important;
+}
+.mandiri-gold {
+    background-color: #ffd100 !important;
+}
+.mandiri-gold-text {
+    color: #ffd100 !important;
+}
+.header-gradient {
+    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%) !important;
+}
+
 /* Map container */
 #map {
     height: 600px;
@@ -326,4 +339,51 @@ body {
   #dev-tipe-table {
     font-size: 0.875rem;
   }
+}
+
+/* =================== ROLE-BASED STYLES =================== */
+.region-only {
+    transition: all 0.3s ease;
+}
+
+.access-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Header Styles */
+.header-gradient {
+    background: linear-gradient(135deg, var(--mandiri-blue) 0%, var(--mandiri-dark-blue) 100%);
+}
+
+/* Button Styles */
+.btn-warning {
+    background: linear-gradient(135deg, var(--mandiri-gold) 0%, #ffc107 100%);
+    border: none;
+    color: #212529;
+    font-weight: 600;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #e6b800 0%, #ffc107 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Alert Styles */
+.alert {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Animation for limited access elements */
+@keyframes pulse-limited {
+    0% { opacity: 0.6; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0.6; }
+}
+
+.region-only:not(.no-pulse) {
+    animation: pulse-limited 2s infinite;
 }
